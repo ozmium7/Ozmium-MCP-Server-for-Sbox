@@ -8,11 +8,12 @@
 *.sln
 *.slnx
 *.scene_d
+*.csproj
 
 # Build artifacts
 obj/
 bin/
-Properties/launchSettings.json
+*launchSettings.json
 
 # IDE
 .vs/
