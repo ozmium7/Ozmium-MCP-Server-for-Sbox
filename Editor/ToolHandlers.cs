@@ -625,26 +625,32 @@ internal static class ToolHandlers
 
 	internal static object RunConsoleCommand( JsonElement args )
 	{
-		var cmd = args.GetProperty( "command" ).GetString();
-		try
-		{
-			ConsoleSystem.Run( cmd );
+		var cmd     = args.GetProperty( "command" ).GetString();
+		var parts   = cmd.Trim().Split( ' ', StringSplitOptions.RemoveEmptyEntries );
+		var cmdName = parts[0];
 
-			// If the command looks like a convar read/set, try to read back the current value
-			// so the caller can see what effect it had.
-			var cmdName = cmd.Split( ' ' )[0].Trim();
-			string readback = null;
-			try { readback = ConsoleSystem.GetValue( cmdName ); } catch { }
+		// Only support convars (readable via GetValue). ConCmd methods and unknown
+		// commands are rejected with a friendly message — ConsoleSystem.Run throws
+		// uncatchable exceptions in s&box's sandbox for both cases.
+		string currentValue = null;
+		try { currentValue = ConsoleSystem.GetValue( cmdName ); } catch { }
 
-			if ( readback != null )
-				return TextResult( $"Ran command: {cmd}\n{cmdName} = {readback}" );
+		if ( currentValue == null )
+			return TextResult( $"Unknown convar: '{cmdName}'. Only [ConVar] properties are supported. Use list_console_commands to see available names." );
 
-			return TextResult( $"Ran command: {cmd}" );
-		}
-		catch ( Exception ex )
-		{
-			return TextResult( $"Command failed: {cmd}\nError: {ex.Message}" );
-		}
+		// Read-only query (no value argument) — just return the current value.
+		if ( parts.Length == 1 )
+			return TextResult( $"{cmdName} = {currentValue}" );
+
+		// Write: set the convar value using SetValue (no main-thread restriction).
+		var newValue = string.Join( " ", parts, 1, parts.Length - 1 );
+		ConsoleSystem.SetValue( cmdName, newValue );
+
+		// Read back to confirm the change.
+		string readback = null;
+		try { readback = ConsoleSystem.GetValue( cmdName ); } catch { }
+
+		return TextResult( $"Set {cmdName} = {readback ?? newValue}" );
 	}
 
 	// ── Shared helpers ─────────────────────────────────────────────────────

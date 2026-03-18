@@ -211,12 +211,28 @@ public static class McpServer
 
 			if ( id != null )
 			{
-				var bodyCopy = body;
-				var taskId   = Guid.NewGuid();
-				var task     = Task.Run( async () =>
+				var bodyCopy  = body;
+				var idCopy    = id;
+				var methodCopy = method;
+				var taskId    = Guid.NewGuid();
+				var task      = Task.Run( async () =>
 				{
-					try   { await ProcessRpcRequest( session, id, method, bodyCopy ); }
-					finally { _inflightTasks.TryRemove( taskId, out _ ); }
+					try
+					{
+						await ProcessRpcRequest( session, idCopy, methodCopy, bodyCopy );
+					}
+					catch ( Exception ex )
+					{
+						// ProcessRpcRequest faulted without sending a response — send an error now.
+						LogError( $"ProcessRpcRequest unhandled fault: {ex.Message}" );
+						var errResponse = new { jsonrpc = "2.0", id = idCopy, result = (object)null, error = new { code = -32603, message = $"Internal error: {ex.Message}" } };
+						var errJson     = JsonSerializer.Serialize( errResponse, JsonOptions );
+						await SendSseEvent( session, "message", errJson );
+					}
+					finally
+					{
+						_inflightTasks.TryRemove( taskId, out _ );
+					}
 				} );
 				_inflightTasks[taskId] = task;
 			}
@@ -263,23 +279,32 @@ public static class McpServer
 				var args     = root.TryGetProperty( "params", out var p ) && p.TryGetProperty( "arguments", out var a ) ? a : default;
 				var toolName = root.GetProperty( "params" ).GetProperty( "name" ).GetString();
 
-				// Scene API calls must run on the main thread to avoid race conditions
-				// with S&box's non-thread-safe scene graph.
-				await GameTask.MainThread();
-
-				result = toolName switch
+				// run_console_command is dispatched through its own async method so that
+				// its method-level try/catch can intercept exceptions thrown by
+				// ConsoleSystem.Run on the main thread (nested catches in async methods
+				// don't reliably catch these in s&box's sandbox environment).
+				if ( toolName == "run_console_command" )
 				{
-					"get_scene_summary"           => ToolHandlers.GetSceneSummary( JsonOptions ),
-					"get_scene_hierarchy"         => ToolHandlers.GetSceneHierarchy( args ),
-					"find_game_objects"           => ToolHandlers.FindGameObjects( args, JsonOptions ),
-					"find_game_objects_in_radius" => ToolHandlers.FindGameObjectsInRadius( args, JsonOptions ),
-					"get_game_object_details"     => ToolHandlers.GetGameObjectDetails( args, JsonOptions ),
-					"get_component_properties"    => ToolHandlers.GetComponentProperties( args, JsonOptions ),
-					"get_prefab_instances"        => ToolHandlers.GetPrefabInstances( args, JsonOptions ),
-					"list_console_commands"       => ToolHandlers.ListConsoleCommands( args, JsonOptions ),
-					"run_console_command"         => ToolHandlers.RunConsoleCommand( args ),
-					_                             => throw new InvalidOperationException( $"Tool '{toolName}' not found" )
-				};
+					result = await RunConsoleCommandSafe( args );
+				}
+				else
+				{
+					// Scene API calls must run on the main thread.
+					await GameTask.MainThread();
+
+					result = toolName switch
+					{
+						"get_scene_summary"           => ToolHandlers.GetSceneSummary( JsonOptions ),
+						"get_scene_hierarchy"         => ToolHandlers.GetSceneHierarchy( args ),
+						"find_game_objects"           => ToolHandlers.FindGameObjects( args, JsonOptions ),
+						"find_game_objects_in_radius" => ToolHandlers.FindGameObjectsInRadius( args, JsonOptions ),
+						"get_game_object_details"     => ToolHandlers.GetGameObjectDetails( args, JsonOptions ),
+						"get_component_properties"    => ToolHandlers.GetComponentProperties( args, JsonOptions ),
+						"get_prefab_instances"        => ToolHandlers.GetPrefabInstances( args, JsonOptions ),
+						"list_console_commands"       => ToolHandlers.ListConsoleCommands( args, JsonOptions ),
+						_                             => throw new InvalidOperationException( $"Tool '{toolName}' not found" )
+					};
+				}
 
 				LogInfo( $"Tool: {toolName}" );
 			}
@@ -295,12 +320,70 @@ public static class McpServer
 		}
 		catch ( Exception ex )
 		{
-			error = new { code = -32603, message = $"Internal error: {ex.Message}" };
+			LogError( $"ProcessRpcRequest catch: method={method} ex={ex.Message}" );
+
+			// For run_console_command, convert engine exceptions into a friendly text result.
+			// Parse rawBody fresh since root/doc may be in an uncertain state after the fault.
+			if ( method == "tools/call" )
+			{
+				string toolNameCatch = null;
+				string cmdStrCatch   = "?";
+				try
+				{
+					var bodyDoc = JsonDocument.Parse( rawBody );
+					var paramsEl = bodyDoc.RootElement.GetProperty( "params" );
+					toolNameCatch = paramsEl.GetProperty( "name" ).GetString();
+					if ( paramsEl.TryGetProperty( "arguments", out var argsEl ) &&
+						argsEl.TryGetProperty( "command", out var cmdEl ) )
+						cmdStrCatch = cmdEl.GetString() ?? "?";
+				}
+				catch ( Exception parseEx )
+				{
+					LogError( $"ProcessRpcRequest catch parse error: {parseEx.Message}" );
+				}
+
+				LogError( $"ProcessRpcRequest catch: toolName={toolNameCatch}" );
+
+				if ( toolNameCatch == "run_console_command" )
+				{
+					result = ToolHandlers.TextResult( $"Command failed: {cmdStrCatch}\nError: {ex.Message}" );
+					error  = null;
+				}
+				else
+				{
+					error = new { code = -32603, message = $"Internal error: {ex.Message}" };
+				}
+			}
+			else
+			{
+				error = new { code = -32603, message = $"Internal error: {ex.Message}" };
+			}
 		}
 
 		var response = new { jsonrpc = "2.0", id, result, error };
 		var json     = JsonSerializer.Serialize( response, JsonOptions );
 		await SendSseEvent( session, "message", json );
+	}
+
+	/// <summary>
+	/// Runs run_console_command without awaiting GameTask.MainThread() so that
+	/// exceptions from ConsoleSystem.Run are catchable in a normal try/catch.
+	/// Unknown commands are pre-validated in ToolHandlers.RunConsoleCommand via
+	/// IsKnownConsoleCommand, so Run is never called for unknown commands.
+	/// Known commands that require the main thread will throw "Run must be called
+	/// on the main thread!" which is caught here and returned as a text result.
+	/// </summary>
+	private static Task<object> RunConsoleCommandSafe( JsonElement args )
+	{
+		var cmdStr = args.ValueKind != JsonValueKind.Undefined && args.TryGetProperty( "command", out var cp ) ? cp.GetString() : "";
+		try
+		{
+			return Task.FromResult( ToolHandlers.RunConsoleCommand( args ) );
+		}
+		catch ( Exception ex )
+		{
+			return Task.FromResult( ToolHandlers.TextResult( $"Command failed: {cmdStr}\nError: {ex.Message}" ) );
+		}
 	}
 
 	// ── SSE write ─────────────────────────────────────────────────────────
