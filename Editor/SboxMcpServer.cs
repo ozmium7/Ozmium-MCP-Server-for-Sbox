@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -85,6 +86,13 @@ public static class McpServer
 	// Tracks in-flight RPC tasks so StopServer can wait for them to finish
 	private static readonly ConcurrentDictionary<Guid, Task> _inflightTasks = new();
 
+	/// <summary>Resolves the library root folder from the source file path (works in S&box's sandbox where Assembly.Location is null).</summary>
+	private static string GetLibraryRoot( [CallerFilePath] string sourceFile = "" )
+	{
+		// sourceFile = .../Libraries/sbox_mcp/Editor/SboxMcpServer.cs  →  go up two levels to get .../Libraries/sbox_mcp
+		return Path.GetFullPath( Path.Combine( Path.GetDirectoryName( sourceFile ), ".." ) );
+	}
+
 	internal static readonly JsonSerializerOptions JsonOptions = new()
 	{
 		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
@@ -118,9 +126,8 @@ public static class McpServer
 			// Play the user's startup sound via native Windows API to bypass S&box asset tracking restrictions
 			try
 			{
-				var asmDir = System.IO.Path.GetDirectoryName( typeof( McpServer ).Assembly.Location );
-				var libRoot = System.IO.Path.GetFullPath( System.IO.Path.Combine( asmDir, ".." ) );
-				var soundPath = System.IO.Path.Combine( libRoot, "Sounds", "Startup sound.wav" );
+				var libRoot = GetLibraryRoot();
+				var soundPath = Path.Combine( libRoot, "Sounds", "Startup sound.wav" );
 				PlaySystemSound( soundPath, IntPtr.Zero, 0x00020001 );
 			}
 			catch ( Exception soundEx )

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Editor;
 using Sandbox;
 
@@ -8,6 +10,13 @@ namespace SboxMcpServer;
 
 public class McpServerWindow : Widget
 {
+	/// <summary>Resolves a path relative to the library root using the source file location at compile time.</summary>
+	private static string GetAssetPath( string folder, string file, [CallerFilePath] string sourceFile = "" )
+	{
+		var libRoot = Path.GetFullPath( Path.Combine( Path.GetDirectoryName( sourceFile ), ".." ) );
+		return Path.Combine( libRoot, folder, file );
+	}
+
 	private Label _statusLabel;
 	private Label _portLabel;
 	private Label _sessionCountLabel;
@@ -54,10 +63,8 @@ public class McpServerWindow : Widget
 		var logo = new Widget();
 		try
 		{
-			// Resolve the logo path relative to this DLL so it works on any machine
-			var asmDir = System.IO.Path.GetDirectoryName( typeof( McpServerWindow ).Assembly.Location );
-			var libRoot = System.IO.Path.GetFullPath( System.IO.Path.Combine( asmDir, ".." ) );
-			var logoPath = System.IO.Path.Combine( libRoot, "Image", "Logo.jpg" ).Replace( '\\', '/' );
+			// Resolve the logo path from the source file location (Assembly.Location is null in S&box)
+			var logoPath = GetAssetPath( "Image", "Logo.jpg" ).Replace( '\\', '/' );
 			logo.SetStyles( $"background-image: url('{logoPath}'); background-position: center; background-repeat: no-repeat; min-height: 80px; margin-bottom: 8px;" );
 		}
 		catch { }
