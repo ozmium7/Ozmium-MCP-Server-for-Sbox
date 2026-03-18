@@ -35,9 +35,19 @@ public static class McpServer
 	public static bool IsRunning   => _listener != null && _listener.IsListening;
 	public static int  SessionCount => _sessions.Count;
 
+	/// <summary>Safely dispatches an action to the main thread, swallowing exceptions if the thread is gone (e.g. during cancel).</summary>
+	private static async void SafeRunOnMainThread( Action action )
+	{
+		try
+		{
+			await GameTask.RunInThreadAsync( action );
+		}
+		catch { /* Main thread unavailable (cancelled / disposed) – safe to ignore */ }
+	}
+
 	private static void LogInfo( string msg )
 	{
-		_ = GameTask.RunInThreadAsync( () =>
+		SafeRunOnMainThread( () =>
 		{
 			Log.Info( msg );
 			OnLogMessage?.Invoke( msg );
@@ -46,7 +56,7 @@ public static class McpServer
 
 	private static void LogError( string msg )
 	{
-		_ = GameTask.RunInThreadAsync( () =>
+		SafeRunOnMainThread( () =>
 		{
 			Log.Error( msg );
 			OnLogMessage?.Invoke( $"[ERROR] {msg}" );
@@ -55,7 +65,7 @@ public static class McpServer
 
 	private static void LogWarning( string msg )
 	{
-		_ = GameTask.RunInThreadAsync( () =>
+		SafeRunOnMainThread( () =>
 		{
 			Log.Warning( msg );
 			OnLogMessage?.Invoke( $"[WARNING] {msg}" );
@@ -64,7 +74,7 @@ public static class McpServer
 
 	private static void NotifyStateChanged()
 	{
-		_ = GameTask.RunInThreadAsync( () => OnServerStateChanged?.Invoke() );
+		SafeRunOnMainThread( () => OnServerStateChanged?.Invoke() );
 	}
 
 	// ── Internal state ─────────────────────────────────────────────────────
