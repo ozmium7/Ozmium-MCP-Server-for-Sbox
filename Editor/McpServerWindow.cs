@@ -54,8 +54,11 @@ public class McpServerWindow : Widget
 		var logo = new Widget();
 		try
 		{
-			// background-position: center combined with background-repeat: no-repeat natively crops the excess padding!
-			logo.SetStyles( "background-image: url('e:/Game/sbox_arena/Libraries/sbox_mcp/Image/Logo.jpg'); background-position: center; background-repeat: no-repeat; min-height: 80px; margin-bottom: 8px;" );
+			// Resolve the logo path relative to this DLL so it works on any machine
+			var asmDir = System.IO.Path.GetDirectoryName( typeof( McpServerWindow ).Assembly.Location );
+			var libRoot = System.IO.Path.GetFullPath( System.IO.Path.Combine( asmDir, ".." ) );
+			var logoPath = System.IO.Path.Combine( libRoot, "Image", "Logo.jpg" ).Replace( '\\', '/' );
+			logo.SetStyles( $"background-image: url('{logoPath}'); background-position: center; background-repeat: no-repeat; min-height: 80px; margin-bottom: 8px;" );
 		}
 		catch { }
 		root.Add( logo );

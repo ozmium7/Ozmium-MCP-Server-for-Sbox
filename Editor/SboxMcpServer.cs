@@ -108,7 +108,10 @@ public static class McpServer
 			// Play the user's startup sound via native Windows API to bypass S&box asset tracking restrictions
 			try
 			{
-				PlaySystemSound( "e:/Game/sbox_arena/Libraries/sbox_mcp/Sounds/Startup sound.wav", IntPtr.Zero, 0x00020001 );
+				var asmDir = System.IO.Path.GetDirectoryName( typeof( McpServer ).Assembly.Location );
+				var libRoot = System.IO.Path.GetFullPath( System.IO.Path.Combine( asmDir, ".." ) );
+				var soundPath = System.IO.Path.Combine( libRoot, "Sounds", "Startup sound.wav" );
+				PlaySystemSound( soundPath, IntPtr.Zero, 0x00020001 );
 			}
 			catch ( Exception soundEx )
 			{
