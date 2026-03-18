@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using Editor;
 using Sandbox;
 
 namespace SboxMcpServer;
@@ -19,9 +20,9 @@ internal static class SceneToolHandlers
 
 	internal static object GetSceneSummary( JsonSerializerOptions jsonOptions )
 	{
-		var scene = Game.ActiveScene;
+		var scene = ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene." );
+			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
 
 		var allObjects  = SceneQueryHelpers.WalkAll( scene, includeDisabled: true ).ToList();
 		var rootObjects = scene.Children.ToList();
@@ -118,11 +119,11 @@ internal static class SceneToolHandlers
 			rootId = ridP.GetString();
 
 		var sb    = new StringBuilder();
-		var scene = Game.ActiveScene;
+		var scene = ResolveScene();
 
 		if ( scene == null )
 		{
-			sb.Append( "No active scene." );
+			sb.Append( "No active scene. Open a scene or prefab in the editor." );
 		}
 		else
 		{
@@ -208,9 +209,9 @@ internal static class SceneToolHandlers
 			if ( args.TryGetProperty( "sortOriginZ",      out var soz ) ) sortOriginZ   = soz.GetSingle();
 		}
 
-		var scene = Game.ActiveScene;
+		var scene = ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene." );
+			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
 
 		var allObjects = SceneQueryHelpers.WalkAll( scene, includeDisabled: true );
 		var matches    = new List<Dictionary<string, object>>();
@@ -278,9 +279,9 @@ internal static class SceneToolHandlers
 			if ( args.TryGetProperty( "maxResults",  out var mr  ) ) maxResults  = Math.Clamp( mr.GetInt32(), 1, 500 );
 		}
 
-		var scene = Game.ActiveScene;
+		var scene = ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene." );
+			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
 
 		var origin     = new Vector3( x, y, z );
 		float radiusSq = radius * radius;
@@ -344,9 +345,9 @@ internal static class SceneToolHandlers
 		if ( string.IsNullOrEmpty( idStr ) && string.IsNullOrEmpty( nameStr ) )
 			throw new ArgumentException( "Provide either 'id' or 'name'." );
 
-		var scene = Game.ActiveScene;
+		var scene = ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene." );
+			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
 
 		var target = FindGameObject( scene, idStr, nameStr );
 
@@ -377,9 +378,9 @@ internal static class SceneToolHandlers
 		if ( string.IsNullOrEmpty( componentType ) )
 			throw new ArgumentException( "Provide 'componentType'." );
 
-		var scene = Game.ActiveScene;
+		var scene = ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene." );
+			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
 
 		var target = FindGameObject( scene, idStr, nameStr );
 
@@ -448,9 +449,9 @@ internal static class SceneToolHandlers
 			if ( args.TryGetProperty( "maxResults",  out var mr ) ) maxResults  = Math.Clamp( mr.GetInt32(), 1, 500 );
 		}
 
-		var scene = Game.ActiveScene;
+		var scene = ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene." );
+			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
 
 		// No prefabPath — return a full breakdown of all prefab sources
 		if ( string.IsNullOrEmpty( prefabPath ) )
@@ -492,6 +493,31 @@ internal static class SceneToolHandlers
 	}
 
 	// ── Private helpers ────────────────────────────────────────────────────
+
+	/// <summary>
+	/// Returns the best available Scene: the live game scene if playing,
+	/// then the active editor session scene (prefab editor, scene editor),
+	/// then null if nothing is open.
+	/// </summary>
+	private static Scene ResolveScene()
+	{
+		if ( Game.ActiveScene != null ) return Game.ActiveScene;
+
+		// When the game is not running, the editor exposes scenes through
+		// SceneEditorSession. Use the active (focused) session if present.
+		try
+		{
+			var session = SceneEditorSession.Active;
+			if ( session?.Scene != null ) return session.Scene;
+
+			// Fall back to the first available session
+			foreach ( var s in SceneEditorSession.All )
+				if ( s?.Scene != null ) return s.Scene;
+		}
+		catch { /* Editor API unavailable at runtime */ }
+
+		return null;
+	}
 
 	/// <summary>
 	/// Locates a GameObject by GUID or name, checking WalkAll first then

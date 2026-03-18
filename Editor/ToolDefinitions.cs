@@ -1,16 +1,15 @@
+using System.Linq;
+
 namespace SboxMcpServer;
 
 /// <summary>
 /// Aggregates all MCP tool schema definitions returned by tools/list.
-/// Schemas are defined in SceneToolDefinitions and ConsoleToolDefinitions.
-/// To add a new tool: add its schema to the appropriate definitions file,
-/// implement its handler in the appropriate handler file, and add a case
-/// to the switch in RpcDispatcher.
 /// </summary>
 internal static class ToolDefinitions
 {
 	internal static object[] All => new object[]
 	{
+		// ── Original 9 read + asset + console tools ────────────────────────
 		SceneToolDefinitions.GetSceneSummary,
 		SceneToolDefinitions.GetSceneHierarchy,
 		SceneToolDefinitions.FindGameObjects,
@@ -18,7 +17,36 @@ internal static class ToolDefinitions
 		SceneToolDefinitions.GetGameObjectDetails,
 		SceneToolDefinitions.GetComponentProperties,
 		SceneToolDefinitions.GetPrefabInstances,
+		AssetToolDefinitions.BrowseAssets,
+		AssetToolDefinitions.GetEditorContext,
 		ConsoleToolDefinitions.ListConsoleCommands,
-		ConsoleToolDefinitions.RunConsoleCommand
+		ConsoleToolDefinitions.RunConsoleCommand,
+
+		// ── New write tools ────────────────────────────────────────────────
+		OzmiumWriteHandlers.SchemaCreateGameObject,
+		OzmiumWriteHandlers.SchemaAddComponent,
+		OzmiumWriteHandlers.SchemaRemoveComponent,
+		OzmiumWriteHandlers.SchemaSetComponentProperty,
+		OzmiumWriteHandlers.SchemaDestroyGameObject,
+		OzmiumWriteHandlers.SchemaReparentGameObject,
+		OzmiumWriteHandlers.SchemaSetGameObjectTags,
+		OzmiumWriteHandlers.SchemaInstantiatePrefab,
+		OzmiumWriteHandlers.SchemaSaveScene,
+		OzmiumWriteHandlers.SchemaUndo,
+		OzmiumWriteHandlers.SchemaRedo,
+
+		// ── New asset tools ────────────────────────────────────────────────
+		OzmiumAssetHandlers.SchemaGetModelInfo,
+		OzmiumAssetHandlers.SchemaGetMaterialProperties,
+		OzmiumAssetHandlers.SchemaGetPrefabStructure,
+		OzmiumAssetHandlers.SchemaReloadAsset,
+
+		// ── New editor control tools ───────────────────────────────────────
+		OzmiumEditorHandlers.SchemaSelectGameObject,
+		OzmiumEditorHandlers.SchemaOpenAsset,
+		OzmiumEditorHandlers.SchemaGetPlayState,
+		OzmiumEditorHandlers.SchemaStartPlayMode,
+		OzmiumEditorHandlers.SchemaStopPlayMode,
+		OzmiumEditorHandlers.SchemaGetEditorLog,
 	};
 }

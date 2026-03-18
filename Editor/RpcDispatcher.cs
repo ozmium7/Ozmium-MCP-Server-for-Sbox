@@ -39,7 +39,7 @@ internal static class RpcDispatcher
 				{
 					protocolVersion = "2024-11-05",
 					capabilities    = new { tools = new { listChanged = true } },
-					serverInfo      = new { name = "SboxMcpServer", version = "1.1.0" }
+					serverInfo      = new { name = "SboxMcpServer", version = "1.2.0" }
 				};
 			}
 			else if ( method == "tools/list" )
@@ -66,6 +66,7 @@ internal static class RpcDispatcher
 
 					result = toolName switch
 					{
+						// ── Read tools ───────────────────────────────────────────────────────
 						"get_scene_summary"           => SceneToolHandlers.GetSceneSummary( jsonOptions ),
 						"get_scene_hierarchy"         => SceneToolHandlers.GetSceneHierarchy( args ),
 						"find_game_objects"           => SceneToolHandlers.FindGameObjects( args, jsonOptions ),
@@ -73,7 +74,34 @@ internal static class RpcDispatcher
 						"get_game_object_details"     => SceneToolHandlers.GetGameObjectDetails( args, jsonOptions ),
 						"get_component_properties"    => SceneToolHandlers.GetComponentProperties( args, jsonOptions ),
 						"get_prefab_instances"        => SceneToolHandlers.GetPrefabInstances( args, jsonOptions ),
+						// ── Asset + console ──────────────────────────────────────────────────
+						"browse_assets"               => AssetToolHandlers.BrowseAssets( args, jsonOptions ),
+						"get_editor_context"          => AssetToolHandlers.GetEditorContext( jsonOptions ),
 						"list_console_commands"       => ConsoleToolHandlers.ListConsoleCommands( args, jsonOptions ),
+						// ── Write tools ──────────────────────────────────────────────────────
+						"create_game_object"          => OzmiumWriteHandlers.CreateGameObject( args ),
+						"add_component"               => OzmiumWriteHandlers.AddComponent( args ),
+						"remove_component"            => OzmiumWriteHandlers.RemoveComponent( args ),
+						"set_component_property"      => OzmiumWriteHandlers.SetComponentProperty( args ),
+						"destroy_game_object"         => OzmiumWriteHandlers.DestroyGameObject( args ),
+						"reparent_game_object"        => OzmiumWriteHandlers.ReparentGameObject( args ),
+						"set_game_object_tags"        => OzmiumWriteHandlers.SetGameObjectTags( args ),
+						"instantiate_prefab"          => OzmiumWriteHandlers.InstantiatePrefab( args ),
+						"save_scene"                  => OzmiumWriteHandlers.SaveScene(),
+						"undo"                        => OzmiumWriteHandlers.Undo(),
+						"redo"                        => OzmiumWriteHandlers.Redo(),
+						// ── Extended asset tools ─────────────────────────────────────────────
+						"get_model_info"              => OzmiumAssetHandlers.GetModelInfo( args ),
+						"get_material_properties"     => OzmiumAssetHandlers.GetMaterialProperties( args ),
+						"get_prefab_structure"        => OzmiumAssetHandlers.GetPrefabStructure( args ),
+						"reload_asset"                => OzmiumAssetHandlers.ReloadAsset( args ),
+						// ── Editor control ───────────────────────────────────────────────────
+						"select_game_object"          => OzmiumEditorHandlers.SelectGameObject( args ),
+						"open_asset"                  => OzmiumEditorHandlers.OpenAsset( args ),
+						"get_play_state"              => OzmiumEditorHandlers.GetPlayState(),
+						"start_play_mode"             => OzmiumEditorHandlers.StartPlayMode(),
+						"stop_play_mode"              => OzmiumEditorHandlers.StopPlayMode(),
+						"get_editor_log"              => OzmiumEditorHandlers.GetEditorLog( args ),
 						_                             => throw new InvalidOperationException( $"Tool '{toolName}' not found" )
 					};
 				}
