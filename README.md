@@ -18,7 +18,15 @@ Setup
 
 json
 
-{  "mcpServers": {    "sbox": {      "url": "http://localhost:8098/sse",      "type": "sse"    }  }}
+    {
+      "mcpServers": {
+    "sbox": {
+      "url": "http://localhost:8098/sse",
+      "type": "sse"
+    }
+      }
+    }
+
 
 5. Done! Your AI assistant can now call get_scene_hierarchy and run_console_command directly.
 
