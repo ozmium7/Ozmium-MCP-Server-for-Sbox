@@ -70,14 +70,20 @@ internal static class OzmiumWriteHandlers
 
 		try
 		{
-			var compType = FindComponentType( type );
-			if ( compType == null ) return Txt( $"Component type '{type}' not found. Use the exact class name." );
+			// First try TypeLibrary directly by name (handles most S&box types including CitizenAnimationHelper)
+			var td = TypeLibrary.GetType( type );
 
-			// Use TypeLibrary to get the TypeDescription required by Components.Create
-			var td = TypeLibrary.GetType( compType );
-			if ( td == null ) return Txt( $"Could not get TypeDescription for '{compType.Name}'." );
+			// If not found by exact name, fall back to searching assemblies
+			if ( td == null )
+			{
+				var compType = FindComponentType( type );
+				if ( compType == null ) return Txt( $"Component type '{type}' not found. Use the exact class name." );
+				td = TypeLibrary.GetType( compType );
+			}
+
+			if ( td == null ) return Txt( $"Could not get TypeDescription for '{type}'." );
 			go.Components.Create( td );
-			return Txt( $"Added '{compType.Name}' to '{go.Name}'." );
+			return Txt( $"Added '{td.Name}' to '{go.Name}'." );
 		}
 		catch ( Exception ex ) { return Txt( $"Error: {ex.Message}" ); }
 	}
@@ -327,17 +333,28 @@ internal static class OzmiumWriteHandlers
 
 	private static Type FindComponentType( string typeName )
 	{
+		// Collect ALL matching component types across all assemblies
+		var candidates = new List<Type>();
 		foreach ( var asm in AppDomain.CurrentDomain.GetAssemblies() )
 		{
 			try
 			{
 				foreach ( var t in asm.GetTypes() )
 					if ( t.IsClass && !t.IsAbstract && typeof( Component ).IsAssignableFrom( t ) )
-						if ( t.Name.Equals( typeName, StringComparison.OrdinalIgnoreCase ) ) return t;
+						if ( t.Name.Equals( typeName, StringComparison.OrdinalIgnoreCase ) )
+							candidates.Add( t );
 			}
 			catch { }
 		}
-		return null;
+
+		if ( candidates.Count == 0 ) return null;
+		if ( candidates.Count == 1 ) return candidates[0];
+
+		// When multiple types share the same name, prefer game-assembly types
+		// (i.e. types NOT in the Sandbox namespace) over engine built-ins.
+		var gameType = candidates.FirstOrDefault( t =>
+			!t.Namespace?.StartsWith( "Sandbox", StringComparison.OrdinalIgnoreCase ) == true );
+		return gameType ?? candidates[0];
 	}
 
 	private static object ConvertJsonValue( JsonElement el, Type targetType )
