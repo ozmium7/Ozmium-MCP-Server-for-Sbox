@@ -7,7 +7,7 @@ Connect AI coding assistants to the S&box editor using the [Model Context Protoc
 ## Features
 
 - SSE-based MCP server running on `localhost:8098`
-- **111 tools** across twelve categories: scene read, scene write, asset queries, editor control, console access, mesh editing, lighting, physics, audio, camera, effects & environment, and utilities
+- **95 tools** across twelve categories: scene read, scene write, asset queries, editor control, console access, mesh editing, lighting, physics, audio, camera, effects & environment, and utilities
 - Disabled objects and disabled subtrees are fully visible to all query tools
 - Built-in Editor panel with live server status, session count, and an activity log
 - Localhost-only — nothing leaves your machine
@@ -336,7 +336,7 @@ git submodule update --remote Libraries/ozmium.oz_mcp
 }
 ```
 
-5. **Done.** Your AI assistant can now call all 111 tools directly.
+5. **Done.** Your AI assistant can now call all 95 tools directly.
 
 ---
 

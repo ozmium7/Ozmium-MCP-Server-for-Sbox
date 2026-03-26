@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Ozmium MCP Server is an S&box editor library that exposes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server, allowing AI coding assistants (Claude Desktop, Cursor, etc.) to query and manipulate the S&box editor scene in real time over SSE on `localhost:8098`. It provides 31 tools across five categories: scene read, scene write, asset queries, editor control, and console access.
+Ozmium MCP Server is an S&box editor library that exposes a [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server, allowing AI coding assistants (Claude Desktop, Cursor, etc.) to query and manipulate the S&box editor scene in real time over SSE on `localhost:8098`. It provides 95 tools across twelve categories: scene read, scene write, asset queries, editor control, console access, mesh editing, lighting, physics, audio, camera, effects & environment, and utilities.
 
 ## Build
 
