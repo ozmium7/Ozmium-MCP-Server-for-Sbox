@@ -7,7 +7,7 @@ Connect AI coding assistants to the S&box editor using the [Model Context Protoc
 ## Features
 
 - SSE-based MCP server running on `localhost:8098`
-- **65 tools** across eighteen categories: scene read, scene write, asset queries, editor control, console access, mesh editing, lighting, physics, audio, camera, effects & environment, utilities, navigation, rendering, game entities, scene queries, terrain, procedural mesh, material editing, batch operations, build automation, zone management, visibility, navmesh, game entity config, and scene data
+- **70 tools** across twenty-five categories: scene read, scene write, asset queries, editor control, console access, mesh editing, terrain, lighting, physics, audio, camera, effects & environment, utilities, navigation, rendering, game entities, scene queries, procedural mesh, material editing, batch operations, build automation, zone management, visibility, navmesh, game entity config, and scene data
 - Disabled objects and disabled subtrees are fully visible to all query tools
 - Built-in Editor panel with live server status, session count, and an activity log
 - Localhost-only — nothing leaves your machine
@@ -293,6 +293,92 @@ Omnibus tool for effects and environment. Operations:
 
 ---
 
+### Rendering
+
+#### `create_render_entity`
+Omnibus tool for rendering entities. Operations:
+- `"TextRenderer"` — Create a GO with a TextRenderer component (text, font size, color, alignment)
+- `"LineRenderer"` — Create a GO with a LineRenderer (array of Vector3 points)
+- `"SpriteRenderer"` — Create a GO with a SpriteRenderer
+- `"TrailRenderer"` — Create a GO with a TrailRenderer (max points, point distance, lifetime, emitting)
+- `"ModelRenderer"` — Create a GO with a ModelRenderer (model path, shadows, body groups)
+- `"SkinnedModelRenderer"` — Create a GO with a SkinnedModelRenderer (model path, animation graph, bone objects)
+- `"ScreenPanel"` — Create a GO with a ScreenPanel (opacity, z-order, auto-screen-scale)
+
+---
+
+### Game Entities
+
+#### `create_game_entity`
+Omnibus tool for creating specific game entities with domain-specific property groups. Operations:
+- `"SpawnPoint"` — Create a player spawn point with optional team tag and color tint
+- `"TriggerHurt"` — Create a damage trigger with configurable damage, rate, damage tags, and start state
+- `"EnvmapProbe"` — Create an environment map probe for reflections
+- `"Prop"` — Create a physics prop with health, static flag, color tint, and body groups
+- `"Decal"` — Create a decal with material, size, projection depth, and lifetime
+- `"WorldPanel"` — Create a world-space HTML panel for shop signs and displays
+- `"FireDamage"` — Create a fire damage volume
+- `"ManualHitbox"` — Create a manual hitbox (sphere or box shape, hitbox tags)
+- `"BaseChair"` — Create a sittable chair with sit pose, height, and tooltip
+- `"Dresser"` — Create an NPC appearance controller (clothing source, height, tint, age)
+- `"Gib"` — Create a gib prop with optional lifetime and fade
+
+---
+
+### Scene Queries
+
+#### `scene_trace`
+Omnibus tool for spatial queries. Operations:
+- `"ray"` — Cast a ray from start to end, return hit info (position, normal, distance, GameObject). Use to align objects to surfaces.
+- `"sphere_trace"` — Sweep a sphere along a ray, return first hit.
+- `"box_trace"` — Sweep a box along a ray, return first hit.
+- `"sphere_overlap"` — Find all objects within a sphere volume. Returns up to 50 results.
+- `"box_overlap"` — Find all objects within a box volume. Returns up to 50 results.
+- `"terrain_height"` — Sample terrain height at an XZ position via raycast.
+
+---
+
+### Procedural Mesh
+
+#### `build_procedural_mesh`
+Omnibus tool for creating and manipulating procedural geometry. Operations:
+- `"create_mesh"` — Create a custom mesh from vertex positions and face indices
+- `"add_face"` — Add a face (triangle/quad) to an existing mesh
+- `"merge"` — Merge two meshes into one
+- `"scale"` — Scale an existing mesh uniformly or per-axis
+- `"extrude"` — Extrude a face outward by an offset
+- `"create_ramp"` — Create a ramp/inclined plane with configurable width, height, depth, and angle
+- `"create_cylinder"` — Create a cylinder with configurable radius, height, and side count
+- `"create_arch"` — Create an arch with configurable radius, height, width, and side count
+
+---
+
+### Material Editing
+
+#### `manage_material`
+Omnibus tool for editing material shader parameters and model material overrides. Operations:
+- `"set_param"` — Set a shader parameter on a material (float, color, vector3, int, bool, texture)
+- `"set_texture"` — Swap a texture on a material
+- `"get_params"` — Read current shader parameter values from a material
+- `"set_model_override"` — Override a material on a ModelRenderer by target name (e.g. `"skin"`)
+- `"clear_model_overrides"` — Remove all material overrides from a ModelRenderer
+
+---
+
+### Batch Operations
+
+#### `batch_operations`
+Omnibus tool for bulk operations on multiple objects. Operations:
+- `"batch_enable"` — Enable or disable multiple objects at once via GUIDs array
+- `"batch_delete"` — Delete multiple objects at once
+- `"batch_set_tags"` — Replace all tags on multiple objects
+- `"batch_set_material"` — Apply a material to multiple objects by face index
+- `"duplicate_array"` — Duplicate a source object in a grid pattern (countX/Y/Z, spacing)
+- `"batch_set_property"` — Set a property on a specific component type across multiple objects
+- `"batch_reparent"` — Move multiple objects under a new parent
+
+---
+
 ### Utilities
 
 #### `get_asset_dependencies`
@@ -347,6 +433,19 @@ Omnibus tool for object visibility and render culling. Operations:
 - `"set_editor_only"` — Add/remove the `editor_only` tag on an object (hidden during gameplay).
 - `"list_editor_only"` — List all objects with the `editor_only` tag.
 - `"hide_in_game"` — Bulk-add `editor_only` tag to multiple objects via GUIDs array.
+
+---
+
+### Navigation
+
+#### `create_nav_mesh_agent`
+Create a GO with a NavMeshAgent component for AI navigation. Accepts position, agent height, radius, max speed, acceleration, and auto-traverse-links toggle.
+
+#### `create_nav_mesh_link`
+Create a NavMeshLink for connecting navigation mesh polygons (ladders, jumps, teleports). Accepts start/end positions, bidirectional toggle, and connection radius.
+
+#### `create_nav_mesh_area`
+Create a NavMeshArea volume that blocks or modifies navmesh generation in a region. Defaults to blocker mode.
 
 ---
 
@@ -438,7 +537,7 @@ git submodule update --remote Libraries/ozmium.oz_mcp
 }
 ```
 
-5. **Done.** Your AI assistant can now call all 65 tools directly.
+5. **Done.** Your AI assistant can now call all 70 tools directly.
 
 ---
 
@@ -471,6 +570,10 @@ git submodule update --remote Libraries/ozmium.oz_mcp
 | `NavigationToolHandlers.cs` | Navigation tools (nav mesh agent, link, area) |
 | `RenderingToolHandlers.cs` | Rendering omnibus tool (create_render_entity) |
 | `GameToolHandlers.cs` | Game omnibus tool (create_game_entity) |
+| `SceneQueryToolHandlers.cs` | Scene spatial queries omnibus (ray cast, sweep, overlap, terrain height) |
+| `ProceduralMeshToolHandlers.cs` | Procedural mesh omnibus (custom mesh, ramp, cylinder, arch, merge, extrude) |
+| `MaterialToolHandlers.cs` | Material editing omnibus (shader params, texture swap, model overrides) |
+| `BatchToolHandlers.cs` | Batch operations omnibus (enable/disable, delete, tag, material, grid duplicate, property, reparent) |
 | `BuildAutomationToolHandlers.cs` | Build automation (scatter prefabs, replace prefab instances, align to ground, randomize transforms) |
 | `ZoneToolHandlers.cs` | Zone management (zone markers, trigger volumes, tag objects in zones, list/query zones) |
 | `VisibilityToolHandlers.cs` | Visibility & culling (culling boxes, editor-only tags, bulk hide) |
