@@ -103,6 +103,40 @@ internal static class CameraToolHandlers
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
 
+	// ── list_cameras ──────────────────────────────────────────────────────
+
+	internal static object ListCameras()
+	{
+		var scene = OzmiumSceneHelpers.ResolveScene();
+		if ( scene == null ) return OzmiumSceneHelpers.Txt( "No active scene." );
+
+		var cameras = new List<Dictionary<string, object>>();
+		foreach ( var go in OzmiumSceneHelpers.WalkAll( scene, true ) )
+		{
+			var cam = go.Components.Get<CameraComponent>();
+			if ( cam == null ) continue;
+
+			cameras.Add( new Dictionary<string, object>
+			{
+				["id"]           = go.Id.ToString(),
+				["name"]         = go.Name,
+				["enabled"]      = go.Enabled,
+				["position"]     = OzmiumSceneHelpers.V3( go.WorldPosition ),
+				["fov"]          = cam.FieldOfView,
+				["zNear"]        = cam.ZNear,
+				["zFar"]         = cam.ZFar,
+				["isMainCamera"] = cam.IsMainCamera,
+				["orthographic"] = cam.Orthographic
+			} );
+		}
+
+		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new
+		{
+			summary = $"{cameras.Count} camera(s) found.",
+			cameras
+		}, _json ) );
+	}
+
 	// ── Schemas ─────────────────────────────────────────────────────────────
 
 	private static Dictionary<string, object> S( string name, string desc, Dictionary<string, object> props, string[] req = null )
@@ -156,15 +190,16 @@ internal static class CameraToolHandlers
 		{
 			"create_camera"    => CreateCamera( args ),
 			"configure_camera" => ConfigureCamera( args ),
-			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: create_camera, configure_camera" )
+			"list_cameras"     => ListCameras(),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: create_camera, configure_camera, list_cameras" )
 		};
 	}
 
 	internal static Dictionary<string, object> SchemaManageCamera => S( "manage_camera",
-		"Manage cameras: create and configure CameraComponents.",
+		"Manage cameras: create, configure, and list CameraComponents.",
 		new Dictionary<string, object>
 		{
-			["operation"]          = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "create_camera", "configure_camera" } },
+			["operation"]          = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "create_camera", "configure_camera", "list_cameras" } },
 			["id"]                 = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID (for configure)." },
 			["name"]               = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Name for the GO." },
 			["x"]                  = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World X position." },

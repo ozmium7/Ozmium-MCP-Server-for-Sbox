@@ -273,6 +273,90 @@ internal static class OzmiumEditorHandlers
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
 
+	// ── select_by_tag ──────────────────────────────────────────────────
+
+	internal static object SelectByTag( JsonElement args )
+	{
+		string tag = OzmiumSceneHelpers.Get( args, "tag", (string)null );
+		if ( string.IsNullOrEmpty( tag ) ) return OzmiumSceneHelpers.Txt( "Provide 'tag'." );
+
+		var scene = OzmiumSceneHelpers.ResolveScene();
+		if ( scene == null ) return OzmiumSceneHelpers.Txt( "No active scene." );
+
+		try
+		{
+			var session = SceneEditorSession.Active;
+			if ( session == null ) return OzmiumSceneHelpers.Txt( "No editor session active." );
+
+			var selProp = session.GetType().GetProperty( "Selection",
+				System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance );
+			var selObj = selProp?.GetValue( session );
+			if ( selObj == null ) return OzmiumSceneHelpers.Txt( "Selection API not available." );
+
+			var clearMethod = selObj.GetType().GetMethod( "Clear" );
+			clearMethod?.Invoke( selObj, null );
+
+			var addMethod = selObj.GetType().GetMethod( "Add", new[] { typeof( object ) } );
+			if ( addMethod == null ) return OzmiumSceneHelpers.Txt( "Selection.Add not available." );
+
+			int count = 0;
+			foreach ( var go in OzmiumSceneHelpers.WalkAll( scene, true ) )
+			{
+				if ( go.Tags.Contains( tag ) )
+				{
+					addMethod.Invoke( selObj, new object[] { go } );
+					count++;
+				}
+			}
+
+			return OzmiumSceneHelpers.Txt( $"Selected {count} object(s) with tag '{tag}'." );
+		}
+		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
+	}
+
+	// ── select_children ────────────────────────────────────────────────
+
+	internal static object SelectChildren( JsonElement args )
+	{
+		var scene = OzmiumSceneHelpers.ResolveScene();
+		if ( scene == null ) return OzmiumSceneHelpers.Txt( "No active scene." );
+
+		string id   = OzmiumSceneHelpers.Get( args, "id",   (string)null );
+		string name = OzmiumSceneHelpers.Get( args, "name", (string)null );
+
+		var parent = OzmiumSceneHelpers.FindGo( scene, id, name );
+		if ( parent == null ) return OzmiumSceneHelpers.Txt( $"Parent not found: id='{id}' name='{name}'." );
+
+		try
+		{
+			var session = SceneEditorSession.Active;
+			if ( session == null ) return OzmiumSceneHelpers.Txt( "No editor session active." );
+
+			var selProp = session.GetType().GetProperty( "Selection",
+				System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance );
+			var selObj = selProp?.GetValue( session );
+			if ( selObj == null ) return OzmiumSceneHelpers.Txt( "Selection API not available." );
+
+			var clearMethod = selObj.GetType().GetMethod( "Clear" );
+			clearMethod?.Invoke( selObj, null );
+
+			var addMethod = selObj.GetType().GetMethod( "Add", new[] { typeof( object ) } );
+			if ( addMethod == null ) return OzmiumSceneHelpers.Txt( "Selection.Add not available." );
+
+			int count = 0;
+			foreach ( var go in OzmiumSceneHelpers.WalkSubtree( parent, true ) )
+			{
+				// Skip the parent itself, select only children/descendants
+				if ( go.Id == parent.Id ) continue;
+				addMethod.Invoke( selObj, new object[] { go } );
+				count++;
+			}
+
+			return OzmiumSceneHelpers.Txt( $"Selected {count} child(ren) of '{parent.Name}'." );
+		}
+		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
+	}
+
 	// ── Schemas ─────────────────────────────────────────────────────────────
 
 	internal static Dictionary<string, object> SchemaSelectGameObject => OzmiumSceneHelpers.S( "select_game_object",
@@ -540,24 +624,55 @@ internal static class OzmiumEditorHandlers
 		string operation = OzmiumSceneHelpers.Get( args, "operation", "" );
 		return operation switch
 		{
-			"select"        => SelectGameObject( args ),
-			"select_many"   => SetSelectedObjects( args ),
-			"clear"         => ClearSelection(),
-			"get_selected"  => GetSelectedObjects(),
-			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: select, select_many, clear, get_selected" )
+			"select"          => SelectGameObject( args ),
+			"select_many"     => SetSelectedObjects( args ),
+			"clear"           => ClearSelection(),
+			"get_selected"    => GetSelectedObjects(),
+			"select_by_tag"   => SelectByTag( args ),
+			"select_children" => SelectChildren( args ),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: select, select_many, clear, get_selected, select_by_tag, select_children" )
 		};
 	}
 
 	internal static Dictionary<string, object> SchemaManageSelection => OzmiumSceneHelpers.S( "manage_selection",
-		"Manage editor selection: select objects, select many, clear selection, or get current selection.",
+		"Manage editor selection: select objects, select many, clear selection, get current selection, select by tag, or select children.",
 		new Dictionary<string, object>
 	{
-		["operation"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "select", "select_many", "clear", "get_selected" } },
-		["id"]        = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID (for select operation)." },
-		["name"]      = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Name (for select operation)." },
-		["ids"]       = new Dictionary<string, object> { ["type"] = "array", ["description"] = "Array of GUIDs (for select_many).", ["items"] = new Dictionary<string, object> { ["type"] = "string" } }
+		["operation"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "select", "select_many", "clear", "get_selected", "select_by_tag", "select_children" } },
+		["id"]        = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID (for select, select_children operations)." },
+		["name"]      = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Name (for select, select_children operations)." },
+		["ids"]       = new Dictionary<string, object> { ["type"] = "array", ["description"] = "Array of GUIDs (for select_many).", ["items"] = new Dictionary<string, object> { ["type"] = "string" } },
+		["tag"]       = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Tag to match (for select_by_tag)." }
 	},
 	new[] { "operation" } );
+
+	// ── get_scene_info ──────────────────────────────────────────────────
+
+	internal static object GetSceneInfo()
+	{
+		try
+		{
+			var session = SceneEditorSession.Active;
+			if ( session == null ) return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new
+			{
+				scenePath = (string)null,
+				sceneName = (string)null,
+				message = "No editor session active."
+			}, _json ) );
+
+			var scene = session.Scene;
+			string resourcePath = scene?.Source?.ResourcePath;
+			string sceneName = scene?.Name;
+
+			return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new
+			{
+				scenePath = resourcePath,
+				sceneName = sceneName,
+				isPrefabSession = session.IsPrefabSession
+			}, _json ) );
+		}
+		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
+	}
 
 	// ── manage_editor_state (Omnibus) ────────────────────────────────────
 
@@ -570,15 +685,16 @@ internal static class OzmiumEditorHandlers
 			"stop_play"  => StopPlayMode(),
 			"get_play_state" => GetPlayState(),
 			"save_scene" => OzmiumWriteHandlers.SaveScene(),
-			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: start_play, stop_play, get_play_state, save_scene" )
+			"get_scene_info" => GetSceneInfo(),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: start_play, stop_play, get_play_state, save_scene, get_scene_info" )
 		};
 	}
 
 	internal static Dictionary<string, object> SchemaManageEditorState => OzmiumSceneHelpers.S( "manage_editor_state",
-		"Manage editor state: start/stop play mode, get play state, save scene.",
+		"Manage editor state: start/stop play mode, get play state, save scene, get scene info.",
 		new Dictionary<string, object>
 	{
-		["operation"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "start_play", "stop_play", "get_play_state", "save_scene" } }
+		["operation"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "start_play", "stop_play", "get_play_state", "save_scene", "get_scene_info" } }
 	},
 	new[] { "operation" } );
 }

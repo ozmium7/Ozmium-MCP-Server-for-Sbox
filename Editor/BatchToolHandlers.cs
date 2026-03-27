@@ -315,6 +315,53 @@ internal static class BatchToolHandlers
 		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( result, _json ) );
 	}
 
+	// ── batch_reparent ───────────────────────────────────────────────────
+
+	private static object BatchReparent( JsonElement args )
+	{
+		var scene = OzmiumSceneHelpers.ResolveScene();
+		if ( scene == null ) return OzmiumSceneHelpers.Txt( "No active scene." );
+
+		if ( !args.TryGetProperty( "ids", out var idsEl ) || idsEl.ValueKind != JsonValueKind.Array || idsEl.GetArrayLength() == 0 )
+			return OzmiumSceneHelpers.Txt( "Provide 'ids' as non-empty array of GUIDs." );
+
+		string parentId = OzmiumSceneHelpers.Get( args, "parentId", (string)null );
+
+		var ids = new List<string>();
+		foreach ( var el in idsEl.EnumerateArray() ) ids.Add( el.GetString() );
+
+		GameObject parentGo = null;
+		if ( !string.IsNullOrEmpty( parentId ) && parentId != "null" )
+		{
+			if ( !Guid.TryParse( parentId, out var parentGuid ) )
+				return OzmiumSceneHelpers.Txt( $"Invalid parentId GUID." );
+			parentGo = OzmiumSceneHelpers.WalkAll( scene, true ).FirstOrDefault( g => g.Id == parentGuid );
+			if ( parentGo == null ) return OzmiumSceneHelpers.Txt( $"Parent '{parentId}' not found." );
+		}
+
+		int found = 0, modified = 0;
+		foreach ( var idStr in ids )
+		{
+			if ( !Guid.TryParse( idStr, out var guid ) ) continue;
+			var go = OzmiumSceneHelpers.WalkAll( scene, true ).FirstOrDefault( g => g.Id == guid );
+			if ( go == null ) continue;
+			found++;
+
+			try
+			{
+				go.SetParent( parentGo );
+				modified++;
+			}
+			catch ( Exception ex )
+			{
+				return OzmiumSceneHelpers.Txt( $"Error reparenting '{go.Name}': {ex.Message}" );
+			}
+		}
+
+		var parentLabel = parentGo != null ? $"'{parentGo.Name}'" : "scene root";
+		return OzmiumSceneHelpers.Txt( $"Reparented {modified} object(s) under {parentLabel} (found {found} of {ids.Count})." );
+	}
+
 	// ── batch_operations (Omnibus) ────────────────────────────────────────
 
 	internal static object BatchOperations( JsonElement args )
@@ -328,7 +375,8 @@ internal static class BatchToolHandlers
 			"batch_set_material" => BatchSetMaterial( args ),
 			"duplicate_array"    => DuplicateArray( args ),
 			"batch_set_property" => BatchSetProperty( args ),
-			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: batch_enable, batch_delete, batch_set_tags, batch_set_material, duplicate_array, batch_set_property" )
+			"batch_reparent"     => BatchReparent( args ),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: batch_enable, batch_delete, batch_set_tags, batch_set_material, duplicate_array, batch_set_property, batch_reparent" )
 		};
 	}
 
@@ -340,8 +388,9 @@ internal static class BatchToolHandlers
 		{
 			var stringArrayItem = new Dictionary<string, object> { ["type"] = "string" };
 			var props = new Dictionary<string, object>();
-			props["operation"]     = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "batch_enable", "batch_delete", "batch_set_tags", "batch_set_material", "duplicate_array", "batch_set_property" } };
+			props["operation"]     = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "batch_enable", "batch_delete", "batch_set_tags", "batch_set_material", "duplicate_array", "batch_set_property", "batch_reparent" } };
 			props["ids"]           = new Dictionary<string, object> { ["type"] = "array", ["description"] = "Array of GUIDs to operate on.", ["items"] = stringArrayItem };
+			props["parentId"]      = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Parent GUID for batch_reparent (omit or 'null' for root)." };
 			props["enabled"]       = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Enable state for batch_enable (default true)." };
 			props["tags_set"]      = new Dictionary<string, object> { ["type"] = "array", ["description"] = "Replace all tags with this list.", ["items"] = stringArrayItem };
 			props["tags_add"]      = new Dictionary<string, object> { ["type"] = "array", ["description"] = "Tags to add.", ["items"] = stringArrayItem };
@@ -362,7 +411,7 @@ internal static class BatchToolHandlers
 
 			var schema = new Dictionary<string, object> { ["type"] = "object", ["properties"] = props };
 			schema["required"] = new[] { "operation" };
-			return new Dictionary<string, object> { ["name"] = "batch_operations", ["description"] = "Perform bulk operations on multiple objects at once: enable/disable, delete, tag, apply materials, duplicate in grids, or set properties.", ["inputSchema"] = schema };
+			return new Dictionary<string, object> { ["name"] = "batch_operations", ["description"] = "Perform bulk operations on multiple objects at once: enable/disable, delete, tag, apply materials, duplicate in grids, set properties, or reparent.", ["inputSchema"] = schema };
 		}
 	}
 }
