@@ -47,7 +47,7 @@ internal static class AssetManagementToolHandlers
 			if ( !System.IO.Path.IsPathRooted( absolutePath ) )
 			{
 				// Resolve relative to current project
-				var project = Project.Current ?? Project.All?.FirstOrDefault( p => p.Active );
+				var project = Project.Current;
 				if ( project == null )
 					return OzmiumSceneHelpers.Txt( "No active project found. Provide an absolute path." );
 
@@ -135,7 +135,7 @@ internal static class AssetManagementToolHandlers
 			string absDir = directory;
 			if ( !System.IO.Path.IsPathRooted( absDir ) )
 			{
-				var project = Project.Current ?? Project.All?.FirstOrDefault( p => p.Active );
+				var project = Project.Current;
 				if ( project != null )
 					absDir = System.IO.Path.Combine( project.GetAssetsPath() ?? project.GetRootPath(), directory );
 			}

@@ -365,8 +365,8 @@ internal static class PrefabToolHandlers
 				id                         = go.Id.ToString(),
 				isPrefabInstance           = go.IsPrefabInstance,
 				isPrefabInstanceRoot       = go.IsPrefabInstanceRoot,
-				isOutermostPrefabRoot      = go.IsOutermostPrefabInstanceRoot,
-				isNestedPrefabInstanceRoot = go.IsNestedPrefabInstanceRoot,
+				isOutermostPrefabRoot      = go.IsPrefabInstanceRoot && FindPrefabRoot( go ) == go,
+				isNestedPrefabInstanceRoot = go.IsPrefabInstanceRoot && FindPrefabRoot( go ) != go,
 				prefabSource               = go.PrefabInstanceSource,
 				isModified                 = go.IsPrefabInstance ? EditorUtility.Prefabs.IsInstanceModified( FindPrefabRoot( go ) ) : false,
 				position                   = OzmiumSceneHelpers.V3( go.WorldPosition ),
@@ -469,7 +469,7 @@ internal static class PrefabToolHandlers
 				var prefabCounts = new Dictionary<string, int>();
 				foreach ( var go in allObjects )
 				{
-					if ( !go.IsOutermostPrefabInstanceRoot ) continue;
+					if ( !go.IsPrefabInstanceRoot || FindPrefabRoot( go ) != go ) continue;
 					var source = go.PrefabInstanceSource ?? "(unknown)";
 					prefabCounts.TryGetValue( source, out var count );
 					prefabCounts[source] = count + 1;
@@ -492,7 +492,7 @@ internal static class PrefabToolHandlers
 			var instances = new List<object>();
 			foreach ( var go in allObjects )
 			{
-				if ( !go.IsOutermostPrefabInstanceRoot ) continue;
+				if ( !go.IsPrefabInstanceRoot || FindPrefabRoot( go ) != go ) continue;
 				var source = go.PrefabInstanceSource;
 				if ( source == null || source.IndexOf( prefabPath, StringComparison.OrdinalIgnoreCase ) < 0 )
 					continue;
