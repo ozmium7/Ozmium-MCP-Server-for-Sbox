@@ -10,11 +10,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class NavigationToolHandlers
 {
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 
 	// ── create_nav_mesh_agent ──────────────────────────────────────────────
 
@@ -48,7 +43,7 @@ internal static class NavigationToolHandlers
 				message = $"Created NavMeshAgent '{go.Name}'.",
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -110,7 +105,7 @@ internal static class NavigationToolHandlers
 				position = OzmiumSceneHelpers.V3( go.WorldPosition ),
 				startPosition = OzmiumSceneHelpers.V3( link.LocalStartPosition ),
 				endPosition   = OzmiumSceneHelpers.V3( link.LocalEndPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -142,7 +137,7 @@ internal static class NavigationToolHandlers
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition ),
 				isBlocker = area.IsBlocker
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}

@@ -15,11 +15,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class OzmiumAssetHandlers
 {
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 
 	// ── browse_assets ──────────────────────────────────────────────────────
 
@@ -68,7 +63,7 @@ internal static class OzmiumAssetHandlers
 			( !string.IsNullOrEmpty( nameFilter ) ? $" name='{nameFilter}'" : "" ) +
 			$" (scanned {total}).";
 
-		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { summary, results }, _json ) );
+		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { summary, results }, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── get_editor_context ─────────────────────────────────────────────────
@@ -109,7 +104,7 @@ internal static class OzmiumAssetHandlers
 		}
 		catch ( Exception ex ) { ctx["editorApiError"] = ex.Message; }
 
-		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( ctx, _json ) );
+		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( ctx, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── get_model_info ─────────────────────────────────────────────────────
@@ -164,7 +159,7 @@ internal static class OzmiumAssetHandlers
 				bones,
 				attachmentCount = attachments.Count,
 				attachments
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error loading model: {ex.Message}" ); }
 	}
@@ -186,7 +181,7 @@ internal static class OzmiumAssetHandlers
 				path,
 				name   = mat.Name,
 				shader = mat.ShaderName
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -266,7 +261,7 @@ internal static class OzmiumAssetHandlers
 			summary = $"Found {results.Count} component type(s)" +
 				( !string.IsNullOrEmpty( filter ) ? $" matching '{filter}'" : "" ) + ".",
 			results
-		}, _json ) );
+		}, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── search_assets ─────────────────────────────────────────────────────
@@ -319,7 +314,7 @@ internal static class OzmiumAssetHandlers
 			summary = $"Found {results.Count} asset(s) matching '{query}'" +
 				( !string.IsNullOrEmpty( type ) ? $" type='{type}'" : "" ) + ".",
 			results
-		}, _json ) );
+		}, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── get_scene_statistics ──────────────────────────────────────────────
@@ -384,7 +379,7 @@ internal static class OzmiumAssetHandlers
 			["networkModeBreakdown"] = netModeCounts
 		};
 
-		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( stats, _json ) );
+		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( stats, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── Schemas ─────────────────────────────────────────────────────────────

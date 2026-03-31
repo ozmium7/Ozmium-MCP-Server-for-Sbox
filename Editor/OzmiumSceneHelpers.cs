@@ -14,6 +14,13 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class OzmiumSceneHelpers
 {
+	/// <summary>Shared JSON serialization settings used by all handler files.</summary>
+	internal static readonly JsonSerializerOptions JsonSettings = new()
+	{
+		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
+		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+	};
+
 	// ── Scene resolution ────────────────────────────────────────────────────
 
 	/// <summary>
@@ -97,6 +104,7 @@ internal static class OzmiumSceneHelpers
 			["name"]             = go.Name,
 			["path"]             = GetObjectPath( go ),
 			["enabled"]          = go.Enabled,
+			["active"]           = go.Active,
 			["tags"]             = GetTags( go ),
 			["components"]       = GetComponentNames( go ),
 			["position"]         = V3( pos ),
@@ -130,6 +138,7 @@ internal static class OzmiumSceneHelpers
 			["name"]           = go.Name,
 			["path"]           = GetObjectPath( go ),
 			["enabled"]        = go.Enabled,
+			["active"]         = go.Active,
 			["tags"]           = GetTags( go ),
 			["components"]     = comps,
 			["worldTransform"] = new Dictionary<string, object>
@@ -148,6 +157,7 @@ internal static class OzmiumSceneHelpers
 				? (object)new Dictionary<string, object> { ["id"] = go.Parent.Id.ToString(), ["name"] = go.Parent.Name }
 				: null,
 			["children"]         = children,
+			["isRoot"]           = go.IsRoot,
 			["isNetworkRoot"]    = go.IsNetworkRoot,
 			["isPrefabInstance"] = go.IsPrefabInstance,
 			["prefabSource"]     = go.IsPrefabInstance ? go.PrefabInstanceSource : null,

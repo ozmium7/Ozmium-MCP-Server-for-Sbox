@@ -39,7 +39,7 @@ internal static class RpcDispatcher
 				{
 					protocolVersion = "2024-11-05",
 					capabilities    = new { tools = new { listChanged = true } },
-					serverInfo      = new { name = "SboxMcpServer", version = "1.2.0" }
+					serverInfo      = new { name = "SboxMcpServer", version = "1.4.0" }
 				};
 			}
 			else if ( method == "tools/list" )
@@ -68,7 +68,7 @@ internal static class RpcDispatcher
 
 					result = toolName switch
 					{
-						// ── Read tools ───────────────────────────────────────────────────────
+						// ── Read tools ───────────────────────────────────────────────────
 						"get_scene_summary"           => SceneToolHandlers.GetSceneSummary( jsonOptions ),
 						"get_scene_hierarchy"         => SceneToolHandlers.GetSceneHierarchy( args ),
 						"find_game_objects"           => SceneToolHandlers.FindGameObjects( args, jsonOptions ),
@@ -76,11 +76,11 @@ internal static class RpcDispatcher
 						"get_game_object_details"     => SceneToolHandlers.GetGameObjectDetails( args, jsonOptions ),
 						"get_component_properties"    => SceneToolHandlers.GetComponentProperties( args, jsonOptions ),
 						"get_prefab_instances"        => SceneToolHandlers.GetPrefabInstances( args, jsonOptions ),
-						// ── Asset + console ──────────────────────────────────────────────────
+						// ── Asset + console ────────────────────────────────────────────────
 						"browse_assets"               => AssetToolHandlers.BrowseAssets( args, jsonOptions ),
 						"get_editor_context"          => AssetToolHandlers.GetEditorContext( jsonOptions ),
 						"list_console_commands"       => ConsoleToolHandlers.ListConsoleCommands( args, jsonOptions ),
-						// ── Write tools ──────────────────────────────────────────────────────
+						// ── Write tools ──────────────────────────────────────────────────
 						"create_game_object"          => OzmiumWriteHandlers.CreateGameObject( args ),
 						"add_component"               => OzmiumWriteHandlers.AddComponent( args ),
 						"remove_component"            => OzmiumWriteHandlers.RemoveComponent( args ),
@@ -89,16 +89,15 @@ internal static class RpcDispatcher
 						"reparent_game_object"        => OzmiumWriteHandlers.ReparentGameObject( args ),
 						"set_game_object_tags"        => OzmiumWriteHandlers.SetGameObjectTags( args ),
 						"instantiate_prefab"          => OzmiumWriteHandlers.InstantiatePrefab( args ),
-						"save_scene"                  => OzmiumWriteHandlers.SaveScene(),
 						"undo"                        => OzmiumWriteHandlers.Undo(),
 						"redo"                        => OzmiumWriteHandlers.Redo(),
-						// ── Batch transform & object management ────────────────────────────
+						// ── Batch transform & object management ────────────────────────
 						"set_game_object_transform"   => OzmiumWriteHandlers.SetGameObjectTransform( args ),
 						"duplicate_game_object"      => OzmiumWriteHandlers.DuplicateGameObject( args ),
 						"set_game_object_enabled"    => OzmiumWriteHandlers.SetGameObjectEnabled( args ),
 						"set_game_object_name"       => OzmiumWriteHandlers.SetGameObjectName( args ),
 						"set_component_enabled"      => OzmiumWriteHandlers.SetComponentEnabled( args ),
-						// ── Extended asset tools ─────────────────────────────────────────────
+						// ── Extended asset tools ─────────────────────────────────────────
 						"get_model_info"              => OzmiumAssetHandlers.GetModelInfo( args ),
 						"get_material_properties"     => OzmiumAssetHandlers.GetMaterialProperties( args ),
 						"get_prefab_structure"        => OzmiumAssetHandlers.GetPrefabStructure( args ),
@@ -106,81 +105,74 @@ internal static class RpcDispatcher
 						"get_component_types"         => OzmiumAssetHandlers.GetComponentTypes( args ),
 						"search_assets"               => OzmiumAssetHandlers.SearchAssets( args ),
 						"get_scene_statistics"        => OzmiumAssetHandlers.GetSceneStatistics(),
-						// ── Editor control ───────────────────────────────────────────────────
-						"select_game_object"          => OzmiumEditorHandlers.SelectGameObject( args ),
+						// ── Editor control ───────────────────────────────────────────────
 						"open_asset"                  => OzmiumEditorHandlers.OpenAsset( args ),
-						"get_play_state"              => OzmiumEditorHandlers.GetPlayState(),
-						"start_play_mode"             => OzmiumEditorHandlers.StartPlayMode(),
-						"stop_play_mode"              => OzmiumEditorHandlers.StopPlayMode(),
 						"get_editor_log"              => OzmiumEditorHandlers.GetEditorLog( args ),
-						// ── Selection tools ──────────────────────────────────────────────────
-						"get_selected_objects"        => OzmiumEditorHandlers.GetSelectedObjects(),
-						"set_selected_objects"        => OzmiumEditorHandlers.SetSelectedObjects( args ),
-						"clear_selection"             => OzmiumEditorHandlers.ClearSelection(),
-						// ── Mesh editing tools ───────────────────────────────────────────────
-						"create_block"                => MeshEditHandlers.CreateBlock( args ),
-						"set_face_material"           => MeshEditHandlers.SetFaceMaterial( args ),
-						"set_texture_parameters"      => MeshEditHandlers.SetTextureParameters( args ),
-						"set_vertex_position"        => MeshEditHandlers.SetVertexPosition( args ),
-						"set_vertex_color"           => MeshEditHandlers.SetVertexColor( args ),
-						"set_vertex_blend"           => MeshEditHandlers.SetVertexBlend( args ),
-						"get_mesh_info"               => MeshEditHandlers.GetMeshInfo( args ),
-						// ── Lighting tools ───────────────────────────────────────────────────
-						"create_light"               => LightingToolHandlers.CreateLight( args ),
-						"configure_light"            => LightingToolHandlers.ConfigureLight( args ),
-						"create_sky_box"             => LightingToolHandlers.CreateSkyBox( args ),
-						"set_sky_box"                => LightingToolHandlers.SetSkyBox( args ),
-						"create_ambient_light"       => LightingToolHandlers.CreateAmbientLight( args ),
-						"create_indirect_light_volume" => LightingToolHandlers.CreateIndirectLightVolume( args ),
-						// ── Physics & collider tools ────────────────────────────────────────
-						"add_collider"               => PhysicsToolHandlers.AddCollider( args ),
-						"configure_collider"         => PhysicsToolHandlers.ConfigureCollider( args ),
-						"add_rigidbody"              => PhysicsToolHandlers.AddRigidbody( args ),
-						"create_character_controller" => PhysicsToolHandlers.CreateCharacterController( args ),
-						"add_plane_collider"         => PhysicsToolHandlers.AddPlaneCollider( args ),
-						"add_hull_collider"          => PhysicsToolHandlers.AddHullCollider( args ),
-						"create_model_physics"       => PhysicsToolHandlers.CreateModelPhysics( args ),
-						// ── Audio tools ─────────────────────────────────────────────────────
-						"create_sound_point"         => AudioToolHandlers.CreateSoundPoint( args ),
-						"configure_sound"            => AudioToolHandlers.ConfigureSound( args ),
-						"create_soundscape_trigger"  => AudioToolHandlers.CreateSoundscapeTrigger( args ),
-						"create_sound_box"           => AudioToolHandlers.CreateSoundBox( args ),
-						"create_dsp_volume"          => AudioToolHandlers.CreateDspVolume( args ),
-						"create_audio_listener"      => AudioToolHandlers.CreateAudioListener( args ),
-						// ── Camera tools ────────────────────────────────────────────────────
-						"create_camera"              => CameraToolHandlers.CreateCamera( args ),
-						"configure_camera"           => CameraToolHandlers.ConfigureCamera( args ),
-						// ── Effect & environment tools ──────────────────────────────────────
-						"create_particle_effect"     => EffectToolHandlers.CreateParticleEffect( args ),
-						"configure_particle_effect"  => EffectToolHandlers.ConfigureParticleEffect( args ),
-						"create_fog_volume"          => EffectToolHandlers.CreateFogVolume( args ),
-						"configure_post_processing"  => EffectToolHandlers.ConfigurePostProcessing( args ),
-						"create_environment_light"   => EffectToolHandlers.CreateEnvironmentLight( args ),
-						// ── Utility tools ───────────────────────────────────────────────────
-						"get_asset_dependencies"     => UtilityToolHandlers.GetAssetDependencies( args ),
-						"batch_transform"            => UtilityToolHandlers.BatchTransform( args ),
-						"copy_component"             => UtilityToolHandlers.CopyComponent( args ),
-						"get_object_bounds"          => UtilityToolHandlers.GetObjectBounds( args ),
-						// ── Navigation tools ──────────────────────────────────────────────────
-						"create_nav_mesh_agent"      => NavigationToolHandlers.CreateNavMeshAgent( args ),
-						"create_nav_mesh_link"       => NavigationToolHandlers.CreateNavMeshLink( args ),
-						"create_nav_mesh_area"       => NavigationToolHandlers.CreateNavMeshArea( args ),
-						// ── Rendering tools ──────────────────────────────────────────────────
-						"create_render_entity"       => RenderingToolHandlers.CreateRenderEntity( args ),
-						// ── Game tools ──────────────────────────────────────────────────────
-						"create_game_entity"         => GameToolHandlers.CreateGameEntity( args ),
-						// ── Effect & physics extension tools ────────────────────────────────
-						"create_beam_effect"         => EffectToolHandlers.CreateBeamEffect( args ),
-						"create_verlet_rope"         => EffectToolHandlers.CreateVerletRope( args ),
-						"create_joint"               => EffectToolHandlers.CreateJoint( args ),
-						"create_clutter"             => EffectToolHandlers.CreateClutter( args ),
-						"create_radius_damage"       => EffectToolHandlers.CreateRadiusDamage( args ),
-						// ── Editor & scene extension tools ──────────────────────────────────
+						// ── Selection (omnibus) ──────────────────────────────────────────
+						"manage_selection"            => OzmiumEditorHandlers.ManageSelection( args ),
+						// ── Editor state (omnibus) ───────────────────────────────────────
+						"manage_editor_state"         => OzmiumEditorHandlers.ManageEditorState( args ),
+						// ── Editor & scene extension tools ───────────────────────────────
 						"frame_selection"            => OzmiumEditorHandlers.FrameSelection( args ),
 						"save_scene_as"              => OzmiumEditorHandlers.SaveSceneAs( args ),
 						"get_scene_unsaved"          => OzmiumEditorHandlers.GetSceneUnsaved(),
 						"break_from_prefab"          => OzmiumEditorHandlers.BreakFromPrefab( args ),
 						"update_from_prefab"         => OzmiumEditorHandlers.UpdateFromPrefab( args ),
+						// ── Mesh editing tools ───────────────────────────────────────────
+						"create_block"                => MeshEditHandlers.CreateBlock( args ),
+						"get_mesh_info"               => MeshEditHandlers.GetMeshInfo( args ),
+						"edit_mesh"                   => MeshEditHandlers.EditMesh( args ),
+						// ── Lighting (omnibus) ───────────────────────────────────────────
+						"manage_lighting"             => LightingToolHandlers.ManageLighting( args ),
+						// ── Physics (omnibus) ───────────────────────────────────────────
+						"manage_physics"              => PhysicsToolHandlers.ManagePhysics( args ),
+						// ── Audio (omnibus) ──────────────────────────────────────────────
+						"manage_audio"                => AudioToolHandlers.ManageAudio( args ),
+						// ── Camera (omnibus) ─────────────────────────────────────────────
+						"manage_camera"               => CameraToolHandlers.ManageCamera( args ),
+						// ── Effects & environment (omnibus) ───────────────────────────────
+						"manage_effects"              => EffectToolHandlers.ManageEffects( args ),
+						// ── Utility tools ───────────────────────────────────────────────
+						"get_asset_dependencies"     => UtilityToolHandlers.GetAssetDependencies( args ),
+						"batch_transform"            => UtilityToolHandlers.BatchTransform( args ),
+						"copy_component"             => UtilityToolHandlers.CopyComponent( args ),
+						"get_object_bounds"          => UtilityToolHandlers.GetObjectBounds( args ),
+						// ── Navigation tools ─────────────────────────────────────────────
+						"create_nav_mesh_agent"      => NavigationToolHandlers.CreateNavMeshAgent( args ),
+						"create_nav_mesh_link"       => NavigationToolHandlers.CreateNavMeshLink( args ),
+						"create_nav_mesh_area"       => NavigationToolHandlers.CreateNavMeshArea( args ),
+						// ── Rendering (omnibus) ──────────────────────────────────────────
+						"create_render_entity"       => RenderingToolHandlers.CreateRenderEntity( args ),
+						// ── Game (omnibus) ────────────────────────────────────────────────
+						"create_game_entity"         => GameToolHandlers.CreateGameEntity( args ),
+						// ── Scene spatial queries (omnibus) ──────────────────────────────
+						"scene_trace"                => SceneQueryToolHandlers.SceneTrace( args ),
+						// ── Terrain (omnibus) ───────────────────────────────────────────
+						"manage_terrain"             => TerrainToolHandlers.ManageTerrain( args ),
+						// ── Procedural mesh (omnibus) ───────────────────────────────────
+						"build_procedural_mesh"      => ProceduralMeshToolHandlers.BuildProceduralMesh( args ),
+						// ── Material editing (omnibus) ─────────────────────────────────
+						"manage_material"            => MaterialToolHandlers.ManageMaterial( args ),
+						// ── Batch operations (omnibus) ─────────────────────────────────
+						"batch_operations"           => BatchToolHandlers.BatchOperations( args ),
+						// ── Build automation (omnibus) ────────────────────────────────
+						"build_automation"           => BuildAutomationToolHandlers.BuildAutomation( args ),
+						// ── Zone management (omnibus) ────────────────────────────────
+						"manage_zones"               => ZoneToolHandlers.ManageZones( args ),
+						// ── Visibility & culling (omnibus) ──────────────────────────
+						"manage_visibility"          => VisibilityToolHandlers.ManageVisibility( args ),
+						// ── NavMesh management (omnibus) ─────────────────────────────
+						"manage_navmesh"             => NavMeshToolHandlers.ManageNavmesh( args ),
+						// ── Game entity config (omnibus) ─────────────────────────────
+						"configure_game_entities"    => GameEntityConfigToolHandlers.ConfigureGameEntities( args ),
+						// ── Scene data (omnibus) ─────────────────────────────────────
+						"manage_scene_data"          => SceneDataToolHandlers.ManageSceneData( args ),
+						// ── Prefab management (omnibus) ──────────────────────────────
+						"manage_prefabs"             => PrefabToolHandlers.ManagePrefabs( args ),
+						// ── Compilation management (omnibus) ─────────────────────────
+						"manage_compilation"         => CompilationToolHandlers.ManageCompilation( args ),
+						// ── Asset management (omnibus) ───────────────────────────────
+						"manage_assets"              => AssetManagementToolHandlers.ManageAssets( args ),
 						_                             => throw new InvalidOperationException( $"Tool '{toolName}' not found" )
 					};
 				}
@@ -214,7 +206,7 @@ internal static class RpcDispatcher
 					toolNameCatch = paramsEl.GetProperty( "name" ).GetString();
 					if ( paramsEl.TryGetProperty( "arguments", out var argsEl ) &&
 						argsEl.TryGetProperty( "command", out var cmdEl ) )
-						cmdStrCatch = cmdEl.GetString() ?? "?";
+					cmdStrCatch = cmdEl.GetString() ?? "?";
 				}
 				catch ( Exception parseEx )
 				{
@@ -225,7 +217,7 @@ internal static class RpcDispatcher
 
 				if ( toolNameCatch == "run_console_command" )
 				{
-					result = ToolHandlerBase.TextResult( $"Command failed: {cmdStrCatch}\nError: {ex.Message}" );
+					result = OzmiumSceneHelpers.Txt( $"Command failed: {cmdStrCatch}\nError: {ex.Message}" );
 					error  = null;
 				}
 				else
@@ -259,7 +251,7 @@ internal static class RpcDispatcher
 		}
 		catch ( Exception ex )
 		{
-			return ToolHandlerBase.TextResult( $"Command failed: {cmdStr}\nError: {ex.Message}" );
+			return OzmiumSceneHelpers.Txt( $"Command failed: {cmdStr}\nError: {ex.Message}" );
 		}
 	}
 }

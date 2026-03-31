@@ -12,11 +12,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class UtilityToolHandlers
 	{
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 
 	// ── get_asset_dependencies ────────────────────────────────────────────────
 
@@ -43,7 +38,7 @@ internal static class UtilityToolHandlers
 			{
 				asset         = path,
 				dependencies  = deps
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -202,7 +197,7 @@ internal static class UtilityToolHandlers
 				enabled = go.Enabled,
 				mins    = OzmiumSceneHelpers.V3( bounds.Mins ),
 				maxs    = OzmiumSceneHelpers.V3( bounds.Maxs )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}

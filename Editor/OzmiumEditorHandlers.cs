@@ -14,11 +14,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class OzmiumEditorHandlers
 {
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 
 	// Circular log buffer — editor feeds into this from LogMessage
 	private static readonly System.Collections.Concurrent.ConcurrentQueue<string> _log
@@ -88,7 +83,7 @@ internal static class OzmiumEditorHandlers
 	{
 		var session = SceneEditorSession.Active;
 		var state = session?.IsPlaying == true ? "Playing" : "Stopped";
-		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { playState = state }, _json ) );
+		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { playState = state }, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── start_play_mode ─────────────────────────────────────────────────────
@@ -167,7 +162,7 @@ internal static class OzmiumEditorHandlers
 		entries = entries.GroupBy( e => e["name"]?.ToString() ).Select( g => g.First() )
 			.OrderBy( e => e["name"]?.ToString() ).ToList();
 
-		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { summary = $"Found {entries.Count} [ConVar] entries{( !string.IsNullOrEmpty( filter ) ? $" matching '{filter}'" : "" )}.", entries, skippedAssemblies = Array.Empty<string>() }, _json ) );
+		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { summary = $"Found {entries.Count} [ConVar] entries{( !string.IsNullOrEmpty( filter ) ? $" matching '{filter}'" : "" )}.", entries, skippedAssemblies = Array.Empty<string>() }, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── run_console_command ─────────────────────────────────────────────────
@@ -201,7 +196,7 @@ internal static class OzmiumEditorHandlers
 		var selected = OzmiumSceneHelpers.GetSelectedGameObjects();
 		var results = selected.Select( go => OzmiumSceneHelpers.BuildSummary( go ) ).ToList();
 		var summary = $"{results.Count} object(s) selected.";
-		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { summary, results }, _json ) );
+		return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new { summary, results }, OzmiumSceneHelpers.JsonSettings ) );
 	}
 
 	// ── set_selected_objects ──────────────────────────────────────────────
@@ -269,6 +264,90 @@ internal static class OzmiumEditorHandlers
 			clearMethod?.Invoke( selObj, null );
 
 			return OzmiumSceneHelpers.Txt( "Selection cleared." );
+		}
+		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
+	}
+
+	// ── select_by_tag ──────────────────────────────────────────────────
+
+	internal static object SelectByTag( JsonElement args )
+	{
+		string tag = OzmiumSceneHelpers.Get( args, "tag", (string)null );
+		if ( string.IsNullOrEmpty( tag ) ) return OzmiumSceneHelpers.Txt( "Provide 'tag'." );
+
+		var scene = OzmiumSceneHelpers.ResolveScene();
+		if ( scene == null ) return OzmiumSceneHelpers.Txt( "No active scene." );
+
+		try
+		{
+			var session = SceneEditorSession.Active;
+			if ( session == null ) return OzmiumSceneHelpers.Txt( "No editor session active." );
+
+			var selProp = session.GetType().GetProperty( "Selection",
+				System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance );
+			var selObj = selProp?.GetValue( session );
+			if ( selObj == null ) return OzmiumSceneHelpers.Txt( "Selection API not available." );
+
+			var clearMethod = selObj.GetType().GetMethod( "Clear" );
+			clearMethod?.Invoke( selObj, null );
+
+			var addMethod = selObj.GetType().GetMethod( "Add", new[] { typeof( object ) } );
+			if ( addMethod == null ) return OzmiumSceneHelpers.Txt( "Selection.Add not available." );
+
+			int count = 0;
+			foreach ( var go in OzmiumSceneHelpers.WalkAll( scene, true ) )
+			{
+				if ( go.Tags.Contains( tag ) )
+				{
+					addMethod.Invoke( selObj, new object[] { go } );
+					count++;
+				}
+			}
+
+			return OzmiumSceneHelpers.Txt( $"Selected {count} object(s) with tag '{tag}'." );
+		}
+		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
+	}
+
+	// ── select_children ────────────────────────────────────────────────
+
+	internal static object SelectChildren( JsonElement args )
+	{
+		var scene = OzmiumSceneHelpers.ResolveScene();
+		if ( scene == null ) return OzmiumSceneHelpers.Txt( "No active scene." );
+
+		string id   = OzmiumSceneHelpers.Get( args, "id",   (string)null );
+		string name = OzmiumSceneHelpers.Get( args, "name", (string)null );
+
+		var parent = OzmiumSceneHelpers.FindGo( scene, id, name );
+		if ( parent == null ) return OzmiumSceneHelpers.Txt( $"Parent not found: id='{id}' name='{name}'." );
+
+		try
+		{
+			var session = SceneEditorSession.Active;
+			if ( session == null ) return OzmiumSceneHelpers.Txt( "No editor session active." );
+
+			var selProp = session.GetType().GetProperty( "Selection",
+				System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance );
+			var selObj = selProp?.GetValue( session );
+			if ( selObj == null ) return OzmiumSceneHelpers.Txt( "Selection API not available." );
+
+			var clearMethod = selObj.GetType().GetMethod( "Clear" );
+			clearMethod?.Invoke( selObj, null );
+
+			var addMethod = selObj.GetType().GetMethod( "Add", new[] { typeof( object ) } );
+			if ( addMethod == null ) return OzmiumSceneHelpers.Txt( "Selection.Add not available." );
+
+			int count = 0;
+			foreach ( var go in OzmiumSceneHelpers.WalkSubtree( parent, true ) )
+			{
+				// Skip the parent itself, select only children/descendants
+				if ( go.Id == parent.Id ) continue;
+				addMethod.Invoke( selObj, new object[] { go } );
+				count++;
+			}
+
+			return OzmiumSceneHelpers.Txt( $"Selected {count} child(ren) of '{parent.Name}'." );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -439,14 +518,14 @@ internal static class OzmiumEditorHandlers
 			{
 				hasUnsavedChanges = false,
 				message = "No editor session active."
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 
 			var hasUnsaved = session.HasUnsavedChanges;
 			return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new
 			{
 				hasUnsavedChanges = hasUnsaved,
 				message = hasUnsaved ? "Scene has unsaved changes." : "Scene is saved."
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -532,5 +611,85 @@ internal static class OzmiumEditorHandlers
 			["id"]   = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID." },
 			["name"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Exact name." }
 		} );
-}
 
+	// ── manage_selection (Omnibus) ────────────────────────────────────────
+
+	internal static object ManageSelection( JsonElement args )
+	{
+		string operation = OzmiumSceneHelpers.Get( args, "operation", "" );
+		return operation switch
+		{
+			"select"          => SelectGameObject( args ),
+			"select_many"     => SetSelectedObjects( args ),
+			"clear"           => ClearSelection(),
+			"get_selected"    => GetSelectedObjects(),
+			"select_by_tag"   => SelectByTag( args ),
+			"select_children" => SelectChildren( args ),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: select, select_many, clear, get_selected, select_by_tag, select_children" )
+		};
+	}
+
+	internal static Dictionary<string, object> SchemaManageSelection => OzmiumSceneHelpers.S( "manage_selection",
+		"Manage editor selection: select objects, select many, clear selection, get current selection, select by tag, or select children.",
+		new Dictionary<string, object>
+	{
+		["operation"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "select", "select_many", "clear", "get_selected", "select_by_tag", "select_children" } },
+		["id"]        = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID (for select, select_children operations)." },
+		["name"]      = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Name (for select, select_children operations)." },
+		["ids"]       = new Dictionary<string, object> { ["type"] = "array", ["description"] = "Array of GUIDs (for select_many).", ["items"] = new Dictionary<string, object> { ["type"] = "string" } },
+		["tag"]       = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Tag to match (for select_by_tag)." }
+	},
+	new[] { "operation" } );
+
+	// ── get_scene_info ──────────────────────────────────────────────────
+
+	internal static object GetSceneInfo()
+	{
+		try
+		{
+			var session = SceneEditorSession.Active;
+			if ( session == null ) return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new
+			{
+				scenePath = (string)null,
+				sceneName = (string)null,
+				message = "No editor session active."
+			}, OzmiumSceneHelpers.JsonSettings ) );
+
+			var scene = session.Scene;
+			string resourcePath = scene?.Source?.ResourcePath;
+			string sceneName = scene?.Name;
+
+			return OzmiumSceneHelpers.Txt( JsonSerializer.Serialize( new
+			{
+				scenePath = resourcePath,
+				sceneName = sceneName,
+				isPrefabSession = session.IsPrefabSession
+			}, OzmiumSceneHelpers.JsonSettings ) );
+		}
+		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
+	}
+
+	// ── manage_editor_state (Omnibus) ────────────────────────────────────
+
+	internal static object ManageEditorState( JsonElement args )
+	{
+		string operation = OzmiumSceneHelpers.Get( args, "operation", "" );
+		return operation switch
+		{
+			"start_play" => StartPlayMode(),
+			"stop_play"  => StopPlayMode(),
+			"get_play_state" => GetPlayState(),
+			"save_scene" => OzmiumWriteHandlers.SaveScene(),
+			"get_scene_info" => GetSceneInfo(),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: start_play, stop_play, get_play_state, save_scene, get_scene_info" )
+		};
+	}
+
+	internal static Dictionary<string, object> SchemaManageEditorState => OzmiumSceneHelpers.S( "manage_editor_state",
+		"Manage editor state: start/stop play mode, get play state, save scene, get scene info.",
+		new Dictionary<string, object>
+	{
+		["operation"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "start_play", "stop_play", "get_play_state", "save_scene", "get_scene_info" } }
+	},
+	new[] { "operation" } );
+}

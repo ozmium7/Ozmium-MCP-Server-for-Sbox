@@ -13,11 +13,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class AudioToolHandlers
 {
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 	// ── create_sound_point ───────────────────────────────────────────────────
 
 	internal static object CreateSoundPoint( JsonElement args )
@@ -61,7 +56,7 @@ internal static class AudioToolHandlers
 				message = $"Created SoundPoint '{go.Name}'.",
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -202,7 +197,7 @@ internal static class AudioToolHandlers
 				position = OzmiumSceneHelpers.V3( go.WorldPosition ),
 				type     = st.Type.ToString(),
 				volume   = st.Volume
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -254,7 +249,7 @@ internal static class AudioToolHandlers
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition ),
 				boxSize  = new { sb.Scale.x, sb.Scale.y, sb.Scale.z }
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -319,7 +314,7 @@ internal static class AudioToolHandlers
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition ),
 				volumeType = sv.Type.ToString()
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -407,7 +402,7 @@ internal static class AudioToolHandlers
 				message = $"Created AudioListener '{go.Name}'.",
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -422,4 +417,51 @@ internal static class AudioToolHandlers
 			["name"]               = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Name for the GO." },
 			["useCameraDirection"] = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Use camera direction for audio (default true)." }
 		} );
+
+	// ── manage_audio (Omnibus) ─────────────────────────────────────────────
+
+	internal static object ManageAudio( JsonElement args )
+	{
+		string operation = OzmiumSceneHelpers.Get( args, "operation", "" );
+		return operation switch
+		{
+			"create_sound_point"       => CreateSoundPoint( args ),
+			"configure_sound"          => ConfigureSound( args ),
+			"create_soundscape_trigger" => CreateSoundscapeTrigger( args ),
+			"create_sound_box"         => CreateSoundBox( args ),
+			"create_dsp_volume"        => CreateDspVolume( args ),
+			"create_audio_listener"    => CreateAudioListener( args ),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: create_sound_point, configure_sound, create_soundscape_trigger, create_sound_box, create_dsp_volume, create_audio_listener" )
+		};
+	}
+
+	internal static Dictionary<string, object> SchemaManageAudio => S( "manage_audio",
+		"Manage audio: create/configure sound points, soundscape triggers, sound boxes, DSP volumes, audio listeners.",
+		new Dictionary<string, object>
+		{
+			["operation"]            = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "create_sound_point", "configure_sound", "create_soundscape_trigger", "create_sound_box", "create_dsp_volume", "create_audio_listener" } },
+			["id"]                   = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID (for configure operations)." },
+			["name"]                 = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Name for the GO." },
+			["x"]                    = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World X position." },
+			["y"]                    = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World Y position." },
+			["z"]                    = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World Z position." },
+			["soundEvent"]           = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Sound event path." },
+			["volume"]               = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Volume (0-1)." },
+			["pitch"]                = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Pitch (0-2)." },
+			["playOnStart"]          = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Play on start." },
+			["repeat"]               = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Repeat sound." },
+			["distanceAttenuation"]  = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Enable distance attenuation." },
+			["distance"]             = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Distance attenuation distance." },
+			["type"]                 = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Trigger type.", ["enum"] = new[] { "Point", "Sphere", "Box" } },
+			["soundscapePath"]       = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Soundscape asset path." },
+			["radius"]               = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Radius." },
+			["boxSize"]              = new Dictionary<string, object> { ["type"] = "object", ["description"] = "Box size {x,y,z}." },
+			["stayActiveOnExit"]     = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Keep playing after exiting." },
+			["dspPreset"]            = new Dictionary<string, object> { ["type"] = "string", ["description"] = "DSP preset asset path." },
+			["targetMixer"]          = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Target mixer name." },
+			["priority"]             = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Priority." },
+			["volumeType"]           = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Volume shape type.", ["enum"] = new[] { "Box", "Sphere", "Infinite" } },
+			["useCameraDirection"]   = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Use camera direction for audio." }
+		},
+		new[] { "operation" } );
 }

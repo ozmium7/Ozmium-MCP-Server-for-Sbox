@@ -13,11 +13,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class LightingToolHandlers
 {
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 
 	// ── create_light ──────────────────────────────────────────────────────
 
@@ -105,7 +100,7 @@ internal static class LightingToolHandlers
 				message = $"Created {type} '{go.Name}'.",
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -228,7 +223,7 @@ internal static class LightingToolHandlers
 				message = $"Created SkyBox '{go.Name}'.",
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -299,7 +294,7 @@ internal static class LightingToolHandlers
 				message = $"Created AmbientLight '{go.Name}'.",
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -454,7 +449,7 @@ internal static class LightingToolHandlers
 				id       = go.Id.ToString(),
 				position = OzmiumSceneHelpers.V3( go.WorldPosition ),
 				probeDensity = ilg.ProbeDensity
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -477,4 +472,54 @@ internal static class LightingToolHandlers
 				["enum"] = new[] { "Deactivate", "Relocate" }
 			}
 		} );
+
+	// ── manage_lighting (Omnibus) ──────────────────────────────────────────
+
+	internal static object ManageLighting( JsonElement args )
+	{
+		string operation = OzmiumSceneHelpers.Get( args, "operation", "" );
+		return operation switch
+		{
+			"create_light"               => CreateLight( args ),
+			"configure_light"            => ConfigureLight( args ),
+			"create_sky_box"             => CreateSkyBox( args ),
+			"set_sky_box"                => SetSkyBox( args ),
+			"create_ambient_light"       => CreateAmbientLight( args ),
+			"create_indirect_light_volume" => CreateIndirectLightVolume( args ),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: create_light, configure_light, create_sky_box, set_sky_box, create_ambient_light, create_indirect_light_volume" )
+		};
+	}
+
+	internal static Dictionary<string, object> SchemaManageLighting => Schema( "manage_lighting",
+		"Manage lighting: create/configure lights, sky boxes, ambient lights, and indirect light volumes.",
+		new Dictionary<string, object>
+		{
+			["operation"]                = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "create_light", "configure_light", "create_sky_box", "set_sky_box", "create_ambient_light", "create_indirect_light_volume" } },
+			["id"]                       = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID (for configure operations)." },
+			["name"]                     = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Name for the GO or exact name." },
+			["type"]                     = LightTypes,
+			["x"]                        = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World X position." },
+			["y"]                        = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World Y position." },
+			["z"]                        = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World Z position." },
+			["pitch"]                    = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Pitch rotation in degrees." },
+			["yaw"]                      = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Yaw rotation in degrees." },
+			["roll"]                     = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Roll rotation in degrees." },
+			["color"]                    = ColorProp,
+			["shadows"]                  = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Cast shadows." },
+			["radius"]                   = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Light radius." },
+			["attenuation"]              = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Light attenuation." },
+			["coneOuter"]                = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Outer cone angle." },
+			["coneInner"]                = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Inner cone angle." },
+			["fogMode"]                  = FogModes,
+			["fogStrength"]              = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Fog strength (0-1)." },
+			["skyMaterial"]              = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Sky material path." },
+			["tint"]                     = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Tint color hex string." },
+			["skyIndirectLighting"]      = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Use sky for indirect lighting." },
+			["size"]                     = new Dictionary<string, object> { ["type"] = "object", ["description"] = "Volume size {x,y,z}." },
+			["probeDensity"]             = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Probe density." },
+			["normalBias"]               = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Normal bias." },
+			["contrast"]                 = new Dictionary<string, object> { ["type"] = "number", ["description"] = "GI contrast." },
+			["insideGeometryBehavior"]   = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Behavior when probes inside geometry.", ["enum"] = new[] { "Deactivate", "Relocate" } }
+		},
+		new[] { "operation" } );
 }

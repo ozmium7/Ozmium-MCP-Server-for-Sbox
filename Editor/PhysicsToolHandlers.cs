@@ -480,4 +480,62 @@ internal static class PhysicsToolHandlers
 			["modelPath"]     = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Model asset path (e.g. 'models/citizen.vmdl')." },
 			["motionEnabled"] = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Enable physics motion (default true)." }
 		} );
+
+	// ── manage_physics (Omnibus) ──────────────────────────────────────────
+
+	internal static object ManagePhysics( JsonElement args )
+	{
+		string operation = OzmiumSceneHelpers.Get( args, "operation", "" );
+		return operation switch
+		{
+			"add_collider"                => AddCollider( args ),
+			"configure_collider"          => ConfigureCollider( args ),
+			"add_rigidbody"               => AddRigidbody( args ),
+			"create_character_controller" => CreateCharacterController( args ),
+			"add_plane_collider"          => AddPlaneCollider( args ),
+			"add_hull_collider"           => AddHullCollider( args ),
+			"create_model_physics"        => CreateModelPhysics( args ),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: add_collider, configure_collider, add_rigidbody, create_character_controller, add_plane_collider, add_hull_collider, create_model_physics" )
+		};
+	}
+
+	internal static Dictionary<string, object> SchemaManagePhysics => S( "manage_physics",
+		"Manage physics: add/configure colliders, rigidbodies, character controllers, plane/hull colliders, model physics.",
+		new Dictionary<string, object>
+		{
+			["operation"]        = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "add_collider", "configure_collider", "add_rigidbody", "create_character_controller", "add_plane_collider", "add_hull_collider", "create_model_physics" } },
+			["id"]               = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GUID." },
+			["name"]             = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Exact name." },
+			["colliderType"]     = ColliderTypes,
+			["size"]             = V3Prop,
+			["center"]           = V3Prop,
+			["radius"]           = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Radius." },
+			["start"]            = V3Prop,
+			["end"]              = V3Prop,
+			["isTrigger"]        = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Trigger volume." },
+			["friction"]         = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Friction (0-1)." },
+			["elasticity"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Bounciness (0-1)." },
+			["surfaceVelocity"]  = V3Prop,
+			["mass"]             = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Mass override (0 = auto)." },
+			["linearDamping"]    = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Linear damping." },
+			["angularDamping"]   = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Angular damping." },
+			["gravity"]          = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Enable gravity." },
+			["gravityScale"]     = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Gravity scale." },
+			["height"]           = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Height." },
+			["stepHeight"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Max step height." },
+			["groundAngle"]      = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Max ground angle." },
+			["acceleration"]     = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Movement acceleration." },
+			["bounciness"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Bounciness." },
+			["scale"]            = new Dictionary<string, object> { ["type"] = "object", ["description"] = "Scale {x,y} (PlaneCollider)." },
+			["normal"]           = new Dictionary<string, object> { ["type"] = "object", ["description"] = "Normal {x,y,z}." },
+			["hullType"]         = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Hull shape type.", ["enum"] = new[] { "Box", "Cone", "Cylinder" } },
+			["tipRadius"]        = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Tip radius (Cone)." },
+			["slices"]           = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Sides for Cone/Cylinder." },
+			["x"]                = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World X position (create operations)." },
+			["y"]                = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World Y position." },
+			["z"]                = new Dictionary<string, object> { ["type"] = "number", ["description"] = "World Z position." },
+			["modelPath"]        = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Model asset path." },
+			["motionEnabled"]    = new Dictionary<string, object> { ["type"] = "boolean", ["description"] = "Enable physics motion." }
+		},
+		new[] { "operation" } );
 }

@@ -15,11 +15,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class MeshEditHandlers
 {
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 
 	// ── create_block ─────────────────────────────────────────────────────────
 
@@ -144,7 +139,7 @@ internal static class MeshEditHandlers
 				faceCount = hFaces.Count,
 				vertexCount = hVertices.Length,
 				material = materialPath
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex )
 		{
@@ -197,7 +192,7 @@ internal static class MeshEditHandlers
 					gameObjectId = gameObject.Id.ToString(),
 					gameObjectName = gameObject.Name,
 					faceIndex = faceIndex
-				}, _json ) );
+				}, OzmiumSceneHelpers.JsonSettings ) );
 			}
 			else
 			{
@@ -214,7 +209,7 @@ internal static class MeshEditHandlers
 					message = $"Applied material '{materialPath}' to {count} faces",
 					gameObjectId = gameObject.Id.ToString(),
 					gameObjectName = gameObject.Name
-				}, _json ) );
+				}, OzmiumSceneHelpers.JsonSettings ) );
 			}
 		}
 		catch ( Exception ex )
@@ -285,7 +280,7 @@ internal static class MeshEditHandlers
 				uAxis = OzmiumSceneHelpers.V3( vAxisU ),
 				vAxis = OzmiumSceneHelpers.V3( vAxisV ),
 				scale = new { x = scaleU, y = scaleV }
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex )
 		{
@@ -335,7 +330,7 @@ internal static class MeshEditHandlers
 				gameObjectName = gameObject.Name,
 				vertexIndex = vertexIndex,
 				position = OzmiumSceneHelpers.V3( newPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex )
 		{
@@ -391,7 +386,7 @@ internal static class MeshEditHandlers
 				gameObjectName = gameObject.Name,
 				vertexIndex = vertexIndex,
 				color = new { r, g, b, a }
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex )
 		{
@@ -446,7 +441,7 @@ internal static class MeshEditHandlers
 				gameObjectName = gameObject.Name,
 				vertexIndex = vertexIndex,
 				blend = new { r, g, b, a }
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex )
 		{
@@ -513,7 +508,7 @@ internal static class MeshEditHandlers
 					maxs = OzmiumSceneHelpers.V3( bounds.Maxs )
 				},
 				faces = faceData
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex )
 		{
@@ -609,4 +604,49 @@ internal static class MeshEditHandlers
 			["gameObjectId"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GameObject GUID." },
 			["name"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GameObject name." }
 		} );
+
+	// ── edit_mesh (Omnibus) ──────────────────────────────────────────────────
+
+	internal static object EditMesh( JsonElement args )
+	{
+		string operation = OzmiumSceneHelpers.Get( args, "operation", "" );
+		return operation switch
+		{
+			"set_face_material"      => SetFaceMaterial( args ),
+			"set_texture_parameters" => SetTextureParameters( args ),
+			"set_vertex_position"    => SetVertexPosition( args ),
+			"set_vertex_color"       => SetVertexColor( args ),
+			"set_vertex_blend"       => SetVertexBlend( args ),
+			_ => OzmiumSceneHelpers.Txt( $"Unknown operation: {operation}. Use: set_face_material, set_texture_parameters, set_vertex_position, set_vertex_color, set_vertex_blend" )
+		};
+	}
+
+	internal static Dictionary<string, object> SchemaEditMesh => OzmiumSceneHelpers.S( "edit_mesh",
+		"Edit a mesh: set face materials, texture parameters, vertex positions, vertex colors, or vertex blend weights.",
+		new Dictionary<string, object>
+		{
+			["operation"]    = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Operation to perform.", ["enum"] = new[] { "set_face_material", "set_texture_parameters", "set_vertex_position", "set_vertex_color", "set_vertex_blend" } },
+			["gameObjectId"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GameObject GUID." },
+			["name"]         = new Dictionary<string, object> { ["type"] = "string", ["description"] = "GameObject name." },
+			["faceIndex"]    = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Face index, or -1 for all faces (default: -1)." },
+			["vertexIndex"]  = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Vertex index (for vertex operations)." },
+			["materialPath"] = new Dictionary<string, object> { ["type"] = "string", ["description"] = "Material path (set_face_material)." },
+			["x"]            = new Dictionary<string, object> { ["type"] = "number", ["description"] = "X position or U axis X." },
+			["y"]            = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Y position or U axis Y." },
+			["z"]            = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Z position or U axis Z." },
+			["r"]            = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Red channel 0-1 (vertex color/blend)." },
+			["g"]            = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Green channel 0-1 (vertex color/blend)." },
+			["b"]            = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Blue channel 0-1 (vertex color/blend)." },
+			["a"]            = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Alpha 0-1 (vertex color)." },
+			["blend"]        = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Alpha blend channel 0-1 (vertex blend)." },
+			["uAxisX"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "U axis X component (default: 1)." },
+			["uAxisY"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "U axis Y component (default: 0)." },
+			["uAxisZ"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "U axis Z component (default: 0)." },
+			["vAxisX"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "V axis X component (default: 0)." },
+			["vAxisY"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "V axis Y component (default: 0)." },
+			["vAxisZ"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "V axis Z component (default: 1)." },
+			["scaleU"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Texture U scale (default: 1)." },
+			["scaleV"]       = new Dictionary<string, object> { ["type"] = "number", ["description"] = "Texture V scale (default: 1)." }
+		},
+		new[] { "operation" } );
 }

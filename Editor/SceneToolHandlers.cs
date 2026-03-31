@@ -20,11 +20,11 @@ internal static class SceneToolHandlers
 
 	internal static object GetSceneSummary( JsonSerializerOptions jsonOptions )
 	{
-		var scene = ResolveScene();
+		var scene = OzmiumSceneHelpers.ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
+			return OzmiumSceneHelpers.Txt( "No active scene. Open a scene or prefab in the editor." );
 
-		var allObjects  = SceneQueryHelpers.WalkAll( scene, includeDisabled: true ).ToList();
+		var allObjects  = OzmiumSceneHelpers.WalkAll( scene, includeDisabled: true ).ToList();
 		var rootObjects = scene.Children.ToList();
 		int totalCount     = allObjects.Count;
 		int rootCount      = rootObjects.Count;
@@ -80,7 +80,7 @@ internal static class SceneToolHandlers
 			["id"]         = g.Id.ToString(),
 			["enabled"]    = g.Enabled,
 			["childCount"] = g.Children.Count,
-			["components"] = SceneQueryHelpers.GetComponentNames( g )
+			["components"] = OzmiumSceneHelpers.GetComponentNames( g )
 		} ).ToList();
 
 		var summary = new Dictionary<string, object>
@@ -98,7 +98,7 @@ internal static class SceneToolHandlers
 		};
 
 		var json = JsonSerializer.Serialize( summary, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── get_scene_hierarchy ────────────────────────────────────────────────
@@ -119,7 +119,7 @@ internal static class SceneToolHandlers
 			rootId = ridP.GetString();
 
 		var sb    = new StringBuilder();
-		var scene = ResolveScene();
+		var scene = OzmiumSceneHelpers.ResolveScene();
 
 		if ( scene == null )
 		{
@@ -131,7 +131,7 @@ internal static class SceneToolHandlers
 
 			if ( !string.IsNullOrEmpty( rootId ) && Guid.TryParse( rootId, out var guid ) )
 			{
-				var subtreeRoot = SceneQueryHelpers.WalkAll( scene )
+				var subtreeRoot = OzmiumSceneHelpers.WalkAll( scene )
 					.FirstOrDefault( g => g.Id == guid );
 
 				if ( subtreeRoot == null )
@@ -143,9 +143,9 @@ internal static class SceneToolHandlers
 					void WalkSub( GameObject go, int depth )
 					{
 						if ( !includeDisabled && !go.Enabled ) return;
-						if ( go.Name?.IndexOf( SceneQueryHelpers.IgnoreMarker, StringComparison.OrdinalIgnoreCase ) >= 0 ) return;
-						if ( go.Tags.Has( SceneQueryHelpers.IgnoreTag ) ) return;
-						ToolHandlerBase.AppendHierarchyLine( sb, go, depth, showChildCount: rootOnly );
+						if ( go.Name?.IndexOf( OzmiumSceneHelpers.IgnoreMarker, StringComparison.OrdinalIgnoreCase ) >= 0 ) return;
+						if ( go.Tags.Has( OzmiumSceneHelpers.IgnoreTag ) ) return;
+						OzmiumSceneHelpers.AppendHierarchyLine( sb, go, depth, showChildren: rootOnly );
 						if ( !rootOnly )
 							foreach ( var child in go.Children )
 								WalkSub( child, depth + 1 );
@@ -158,9 +158,9 @@ internal static class SceneToolHandlers
 				foreach ( var go in scene.Children )
 				{
 					if ( !includeDisabled && !go.Enabled ) continue;
-					if ( go.Name?.IndexOf( SceneQueryHelpers.IgnoreMarker, StringComparison.OrdinalIgnoreCase ) >= 0 ) continue;
-					if ( go.Tags.Has( SceneQueryHelpers.IgnoreTag ) ) continue;
-					ToolHandlerBase.AppendHierarchyLine( sb, go, 0, showChildCount: true );
+					if ( go.Name?.IndexOf( OzmiumSceneHelpers.IgnoreMarker, StringComparison.OrdinalIgnoreCase ) >= 0 ) continue;
+					if ( go.Tags.Has( OzmiumSceneHelpers.IgnoreTag ) ) continue;
+					OzmiumSceneHelpers.AppendHierarchyLine( sb, go, 0, showChildren: true );
 				}
 			}
 			else
@@ -168,9 +168,9 @@ internal static class SceneToolHandlers
 				void Walk( GameObject go, int depth )
 				{
 					if ( !includeDisabled && !go.Enabled ) return;
-					if ( go.Name?.IndexOf( SceneQueryHelpers.IgnoreMarker, StringComparison.OrdinalIgnoreCase ) >= 0 ) return;
-					if ( go.Tags.Has( SceneQueryHelpers.IgnoreTag ) ) return;
-					ToolHandlerBase.AppendHierarchyLine( sb, go, depth, showChildCount: false );
+					if ( go.Name?.IndexOf( OzmiumSceneHelpers.IgnoreMarker, StringComparison.OrdinalIgnoreCase ) >= 0 ) return;
+					if ( go.Tags.Has( OzmiumSceneHelpers.IgnoreTag ) ) return;
+					OzmiumSceneHelpers.AppendHierarchyLine( sb, go, depth, showChildren: false );
 					foreach ( var child in go.Children )
 						Walk( child, depth + 1 );
 				}
@@ -179,7 +179,7 @@ internal static class SceneToolHandlers
 			}
 		}
 
-		return ToolHandlerBase.TextResult( sb.ToString() );
+		return OzmiumSceneHelpers.Txt( sb.ToString() );
 	}
 
 	// ── find_game_objects ──────────────────────────────────────────────────
@@ -215,11 +215,11 @@ internal static class SceneToolHandlers
 			if ( args.TryGetProperty( "sortOriginZ",      out var soz ) ) sortOriginZ   = soz.GetSingle();
 		}
 
-		var scene = ResolveScene();
+		var scene = OzmiumSceneHelpers.ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
+			return OzmiumSceneHelpers.Txt( "No active scene. Open a scene or prefab in the editor." );
 
-		var allObjects = SceneQueryHelpers.WalkAll( scene, includeDisabled: true );
+		var allObjects = OzmiumSceneHelpers.WalkAll( scene, includeDisabled: true );
 		var matches    = new List<Dictionary<string, object>>();
 		int totalSearched = 0;
 
@@ -238,13 +238,13 @@ internal static class SceneToolHandlers
 			}
 			if ( !string.IsNullOrEmpty( pathContains ) )
 			{
-				var path = SceneQueryHelpers.GetObjectPath( go );
+				var path = OzmiumSceneHelpers.GetObjectPath( go );
 				if ( path.IndexOf( pathContains, StringComparison.OrdinalIgnoreCase ) < 0 ) continue;
 			}
 			if ( isNetworkRoot.HasValue && go.IsNetworkRoot != isNetworkRoot.Value ) continue;
 			if ( isPrefabInst.HasValue  && go.IsPrefabInstance != isPrefabInst.Value ) continue;
 
-			matches.Add( SceneQueryHelpers.BuildObjectSummary( go ) );
+			matches.Add( OzmiumSceneHelpers.BuildSummary( go ) );
 		}
 
 		matches = ApplySorting( matches, sortBy, sortOriginX, sortOriginY, sortOriginZ );
@@ -257,7 +257,7 @@ internal static class SceneToolHandlers
 			summary += $" Result limit ({maxResults}) reached — refine your filters for more specific results.";
 
 		var json = JsonSerializer.Serialize( new { summary, results = matches }, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── find_game_objects_in_radius ────────────────────────────────────────
@@ -285,16 +285,16 @@ internal static class SceneToolHandlers
 			if ( args.TryGetProperty( "maxResults",  out var mr  ) ) maxResults  = Math.Clamp( mr.GetInt32(), 1, 500 );
 		}
 
-		var scene = ResolveScene();
+		var scene = OzmiumSceneHelpers.ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
+			return OzmiumSceneHelpers.Txt( "No active scene. Open a scene or prefab in the editor." );
 
 		var origin     = new Vector3( x, y, z );
 		float radiusSq = radius * radius;
 
 		var matches = new List<(float dist, Dictionary<string, object> summary)>();
 
-		foreach ( var go in SceneQueryHelpers.WalkAll( scene, includeDisabled: true ) )
+		foreach ( var go in OzmiumSceneHelpers.WalkAll( scene, includeDisabled: true ) )
 		{
 			if ( enabledOnly && !go.Enabled ) continue;
 			if ( !string.IsNullOrEmpty( hasTag ) && !go.Tags.Has( hasTag ) ) continue;
@@ -310,7 +310,7 @@ internal static class SceneToolHandlers
 			var distSq = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
 			if ( distSq > radiusSq ) continue;
 
-			matches.Add( (MathF.Sqrt( distSq ), SceneQueryHelpers.BuildObjectSummary( go )) );
+			matches.Add( (MathF.Sqrt( distSq ), OzmiumSceneHelpers.BuildSummary( go )) );
 		}
 
 		matches.Sort( ( a, b ) => a.dist.CompareTo( b.dist ) );
@@ -330,7 +330,7 @@ internal static class SceneToolHandlers
 			summary += $" Result limit ({maxResults}) reached.";
 
 		var json = JsonSerializer.Serialize( new { summary, results }, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── get_game_object_details ────────────────────────────────────────────
@@ -351,17 +351,17 @@ internal static class SceneToolHandlers
 		if ( string.IsNullOrEmpty( idStr ) && string.IsNullOrEmpty( nameStr ) )
 			throw new ArgumentException( "Provide either 'id' or 'name'." );
 
-		var scene = ResolveScene();
+		var scene = OzmiumSceneHelpers.ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
+			return OzmiumSceneHelpers.Txt( "No active scene. Open a scene or prefab in the editor." );
 
-		var target = FindGameObject( scene, idStr, nameStr );
+		var target = OzmiumSceneHelpers.FindGo( scene, idStr, nameStr );
 
 		if ( target == null )
-			return ToolHandlerBase.TextResult( $"No GameObject found matching id='{idStr}' name='{nameStr}'." );
+			return OzmiumSceneHelpers.Txt( $"No GameObject found matching id='{idStr}' name='{nameStr}'." );
 
-		var json = JsonSerializer.Serialize( SceneQueryHelpers.BuildObjectDetail( target, recurse ), jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		var json = JsonSerializer.Serialize( OzmiumSceneHelpers.BuildDetail( target, recurse ), jsonOptions );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── get_component_properties ──────────────────────────────────────────
@@ -384,20 +384,20 @@ internal static class SceneToolHandlers
 		if ( string.IsNullOrEmpty( componentType ) )
 			throw new ArgumentException( "Provide 'componentType'." );
 
-		var scene = ResolveScene();
+		var scene = OzmiumSceneHelpers.ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
+			return OzmiumSceneHelpers.Txt( "No active scene. Open a scene or prefab in the editor." );
 
-		var target = FindGameObject( scene, idStr, nameStr );
+		var target = OzmiumSceneHelpers.FindGo( scene, idStr, nameStr );
 
 		if ( target == null )
-			return ToolHandlerBase.TextResult( $"No GameObject found matching id='{idStr}' name='{nameStr}'." );
+			return OzmiumSceneHelpers.Txt( $"No GameObject found matching id='{idStr}' name='{nameStr}'." );
 
 		var comp = target.Components.GetAll().FirstOrDefault( c =>
 			c.GetType().Name.IndexOf( componentType, StringComparison.OrdinalIgnoreCase ) >= 0 );
 
 		if ( comp == null )
-			return ToolHandlerBase.TextResult( $"No component matching '{componentType}' found on '{target.Name}'." );
+			return OzmiumSceneHelpers.Txt( $"No component matching '{componentType}' found on '{target.Name}'." );
 
 		var props = new Dictionary<string, object>();
 		var type  = comp.GetType();
@@ -437,7 +437,7 @@ internal static class SceneToolHandlers
 		};
 
 		var json = JsonSerializer.Serialize( result, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── get_prefab_instances ───────────────────────────────────────────────
@@ -455,15 +455,15 @@ internal static class SceneToolHandlers
 			if ( args.TryGetProperty( "maxResults",  out var mr ) ) maxResults  = Math.Clamp( mr.GetInt32(), 1, 500 );
 		}
 
-		var scene = ResolveScene();
+		var scene = OzmiumSceneHelpers.ResolveScene();
 		if ( scene == null )
-			return ToolHandlerBase.TextResult( "No active scene. Open a scene or prefab in the editor." );
+			return OzmiumSceneHelpers.Txt( "No active scene. Open a scene or prefab in the editor." );
 
 		// No prefabPath — return a full breakdown of all prefab sources
 		if ( string.IsNullOrEmpty( prefabPath ) )
 		{
 			var counts = new Dictionary<string, int>( StringComparer.OrdinalIgnoreCase );
-			foreach ( var go in SceneQueryHelpers.WalkAll( scene, includeDisabled: true ) )
+			foreach ( var go in OzmiumSceneHelpers.WalkAll( scene, includeDisabled: true ) )
 			{
 				if ( !go.IsPrefabInstance || go.PrefabInstanceSource == null ) continue;
 				if ( enabledOnly && !go.Enabled ) continue;
@@ -475,19 +475,19 @@ internal static class SceneToolHandlers
 				.Select( kv => new Dictionary<string, object> { ["prefab"] = kv.Key, ["instances"] = kv.Value } )
 				.ToList();
 			var bJson = JsonSerializer.Serialize( new { summary = $"{counts.Count} unique prefab(s) in scene.", breakdown }, jsonOptions );
-			return ToolHandlerBase.TextResult( bJson );
+			return OzmiumSceneHelpers.Txt( bJson );
 		}
 
 		// Return instances of a specific prefab
 		var matches = new List<Dictionary<string, object>>();
-		foreach ( var go in SceneQueryHelpers.WalkAll( scene, includeDisabled: true ) )
+		foreach ( var go in OzmiumSceneHelpers.WalkAll( scene, includeDisabled: true ) )
 		{
 			if ( matches.Count >= maxResults ) break;
 			if ( !go.IsPrefabInstance ) continue;
 			if ( enabledOnly && !go.Enabled ) continue;
 			if ( go.PrefabInstanceSource == null ) continue;
 			if ( go.PrefabInstanceSource.IndexOf( prefabPath, StringComparison.OrdinalIgnoreCase ) < 0 ) continue;
-			matches.Add( SceneQueryHelpers.BuildObjectSummary( go ) );
+			matches.Add( OzmiumSceneHelpers.BuildSummary( go ) );
 		}
 
 		bool truncated = matches.Count >= maxResults;
@@ -495,61 +495,10 @@ internal static class SceneToolHandlers
 		if ( truncated ) sumStr += $" Result limit ({maxResults}) reached.";
 
 		var json = JsonSerializer.Serialize( new { summary = sumStr, results = matches }, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── Private helpers ────────────────────────────────────────────────────
-
-	/// <summary>
-	/// Returns the best available Scene: the live game scene if playing,
-	/// then the active editor session scene (prefab editor, scene editor),
-	/// then null if nothing is open.
-	/// </summary>
-	private static Scene ResolveScene()
-	{
-		// Prefer the editor session scene — this is what the user sees in the hierarchy panel.
-		try
-		{
-			var session = SceneEditorSession.Active;
-			if ( session?.Scene != null ) return session.Scene;
-
-			// Fall back to the first available session
-			foreach ( var s in SceneEditorSession.All )
-				if ( s?.Scene != null ) return s.Scene;
-		}
-		catch { /* Editor API unavailable at runtime */ }
-
-		// Fall back to runtime scene (only meaningful during play mode or tests)
-		if ( Game.ActiveScene != null ) return Game.ActiveScene;
-		return null;
-	}
-
-	/// <summary>
-	/// Locates a GameObject by GUID or name, checking WalkAll first then
-	/// scene.Children directly to catch disabled root objects.
-	/// </summary>
-	private static GameObject FindGameObject( Scene scene, string idStr, string nameStr )
-	{
-		GameObject target = null;
-
-		if ( !string.IsNullOrEmpty( idStr ) && Guid.TryParse( idStr, out var guid ) )
-		{
-			target = SceneQueryHelpers.WalkAll( scene, includeDisabled: true ).FirstOrDefault( g => g.Id == guid );
-			if ( target == null )
-				target = scene.Children.FirstOrDefault( g => g.Id == guid );
-		}
-
-		if ( target == null && !string.IsNullOrEmpty( nameStr ) )
-		{
-			target = SceneQueryHelpers.WalkAll( scene, includeDisabled: true ).FirstOrDefault( g =>
-				string.Equals( g.Name, nameStr, StringComparison.OrdinalIgnoreCase ) );
-			if ( target == null )
-				target = scene.Children.FirstOrDefault( g =>
-					string.Equals( g.Name, nameStr, StringComparison.OrdinalIgnoreCase ) );
-		}
-
-		return target;
-	}
 
 	/// <summary>Applies optional sorting to a list of object summary dictionaries.</summary>
 	private static List<Dictionary<string, object>> ApplySorting(

@@ -20,7 +20,7 @@ namespace SboxMcpServer;
 /// Responsible for accepting connections, managing SSE sessions, and routing
 /// raw HTTP requests. Tool logic lives in SceneToolHandlers / ConsoleToolHandlers,
 /// dispatch in RpcDispatcher, schemas in SceneToolDefinitions / ConsoleToolDefinitions,
-/// and scene helpers in SceneQueryHelpers.
+/// and scene helpers in OzmiumSceneHelpers.
 /// </summary>
 public static class McpServer
 {

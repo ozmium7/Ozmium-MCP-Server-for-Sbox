@@ -22,7 +22,7 @@ internal static class ToolDefinitions
 		ConsoleToolDefinitions.ListConsoleCommands,
 		ConsoleToolDefinitions.RunConsoleCommand,
 
-		// ── New write tools ────────────────────────────────────────────────
+		// ── Write tools ────────────────────────────────────────────────────
 		OzmiumWriteHandlers.SchemaCreateGameObject,
 		OzmiumWriteHandlers.SchemaAddComponent,
 		OzmiumWriteHandlers.SchemaRemoveComponent,
@@ -31,7 +31,6 @@ internal static class ToolDefinitions
 		OzmiumWriteHandlers.SchemaReparentGameObject,
 		OzmiumWriteHandlers.SchemaSetGameObjectTags,
 		OzmiumWriteHandlers.SchemaInstantiatePrefab,
-		OzmiumWriteHandlers.SchemaSaveScene,
 		OzmiumWriteHandlers.SchemaUndo,
 		OzmiumWriteHandlers.SchemaRedo,
 
@@ -42,7 +41,7 @@ internal static class ToolDefinitions
 		OzmiumWriteHandlers.SchemaSetGameObjectName,
 		OzmiumWriteHandlers.SchemaSetComponentEnabled,
 
-		// ── New asset tools ────────────────────────────────────────────────
+		// ── Asset tools ────────────────────────────────────────────────────
 		OzmiumAssetHandlers.SchemaGetModelInfo,
 		OzmiumAssetHandlers.SchemaGetMaterialProperties,
 		OzmiumAssetHandlers.SchemaGetPrefabStructure,
@@ -51,91 +50,94 @@ internal static class ToolDefinitions
 		OzmiumAssetHandlers.SchemaSearchAssets,
 		OzmiumAssetHandlers.SchemaGetSceneStatistics,
 
-		// ── New editor control tools ───────────────────────────────────────
-		OzmiumEditorHandlers.SchemaSelectGameObject,
+		// ── Editor control ─────────────────────────────────────────────────
 		OzmiumEditorHandlers.SchemaOpenAsset,
-		OzmiumEditorHandlers.SchemaGetPlayState,
-		OzmiumEditorHandlers.SchemaStartPlayMode,
-		OzmiumEditorHandlers.SchemaStopPlayMode,
 		OzmiumEditorHandlers.SchemaGetEditorLog,
-		OzmiumEditorHandlers.SchemaGetSelectedObjects,
-		OzmiumEditorHandlers.SchemaSetSelectedObjects,
-		OzmiumEditorHandlers.SchemaClearSelection,
-
-		// ── Mesh editing tools ───────────────────────────────────────────────
-		MeshEditHandlers.SchemaCreateBlock,
-		MeshEditHandlers.SchemaSetFaceMaterial,
-		MeshEditHandlers.SchemaSetTextureParameters,
-		MeshEditHandlers.SchemaSetVertexPosition,
-		MeshEditHandlers.SchemaSetVertexColor,
-		MeshEditHandlers.SchemaSetVertexBlend,
-		MeshEditHandlers.SchemaGetMeshInfo,
-
-		// ── Lighting tools ──────────────────────────────────────────────────
-		LightingToolHandlers.SchemaCreateLight,
-		LightingToolHandlers.SchemaConfigureLight,
-		LightingToolHandlers.SchemaCreateSkyBox,
-		LightingToolHandlers.SchemaSetSkyBox,
-		LightingToolHandlers.SchemaCreateAmbientLight,
-		LightingToolHandlers.SchemaCreateIndirectLightVolume,
-
-		// ── Physics & collider tools ────────────────────────────────────────
-		PhysicsToolHandlers.SchemaAddCollider,
-		PhysicsToolHandlers.SchemaConfigureCollider,
-		PhysicsToolHandlers.SchemaAddRigidbody,
-		PhysicsToolHandlers.SchemaCreateCharacterController,
-		PhysicsToolHandlers.SchemaAddPlaneCollider,
-		PhysicsToolHandlers.SchemaAddHullCollider,
-		PhysicsToolHandlers.SchemaCreateModelPhysics,
-
-		// ── Audio tools ─────────────────────────────────────────────────────
-		AudioToolHandlers.SchemaCreateSoundPoint,
-		AudioToolHandlers.SchemaConfigureSound,
-		AudioToolHandlers.SchemaCreateSoundscapeTrigger,
-		AudioToolHandlers.SchemaCreateSoundBox,
-		AudioToolHandlers.SchemaCreateDspVolume,
-		AudioToolHandlers.SchemaCreateAudioListener,
-
-		// ── Camera tools ────────────────────────────────────────────────────
-		CameraToolHandlers.SchemaCreateCamera,
-		CameraToolHandlers.SchemaConfigureCamera,
-
-		// ── Effect & environment tools ──────────────────────────────────────
-		EffectToolHandlers.SchemaCreateParticleEffect,
-		EffectToolHandlers.SchemaConfigureParticleEffect,
-		EffectToolHandlers.SchemaCreateFogVolume,
-		EffectToolHandlers.SchemaConfigurePostProcessing,
-		EffectToolHandlers.SchemaCreateEnvironmentLight,
-
-		// ── Utility tools ───────────────────────────────────────────────────
-		UtilityToolHandlers.SchemaGetAssetDependencies,
-		UtilityToolHandlers.SchemaBatchTransform,
-		UtilityToolHandlers.SchemaCopyComponent,
-		UtilityToolHandlers.SchemaGetObjectBounds,
-
-		// ── Navigation tools ────────────────────────────────────────────────
-		NavigationToolHandlers.SchemaCreateNavMeshAgent,
-		NavigationToolHandlers.SchemaCreateNavMeshLink,
-		NavigationToolHandlers.SchemaCreateNavMeshArea,
-
-		// ── Rendering tools ─────────────────────────────────────────────────
-		RenderingToolHandlers.SchemaCreateRenderEntity,
-
-		// ── Game tools ──────────────────────────────────────────────────────
-		GameToolHandlers.SchemaCreateGameEntity,
-
-		// ── Effect & physics extension tools ────────────────────────────────
-		EffectToolHandlers.SchemaCreateBeamEffect,
-		EffectToolHandlers.SchemaCreateVerletRope,
-		EffectToolHandlers.SchemaCreateJoint,
-		EffectToolHandlers.SchemaCreateClutter,
-		EffectToolHandlers.SchemaCreateRadiusDamage,
-
-		// ── Editor & scene extension tools ──────────────────────────────────
+		OzmiumEditorHandlers.SchemaManageSelection,
+		OzmiumEditorHandlers.SchemaManageEditorState,
 		OzmiumEditorHandlers.SchemaFrameSelection,
 		OzmiumEditorHandlers.SchemaSaveSceneAs,
 		OzmiumEditorHandlers.SchemaGetSceneUnsaved,
 		OzmiumEditorHandlers.SchemaBreakFromPrefab,
 		OzmiumEditorHandlers.SchemaUpdateFromPrefab,
+
+		// ── Mesh editing tools ─────────────────────────────────────────────
+		MeshEditHandlers.SchemaCreateBlock,
+		MeshEditHandlers.SchemaGetMeshInfo,
+		MeshEditHandlers.SchemaEditMesh,
+
+		// ── Lighting (omnibus) ────────────────────────────────────────────
+		LightingToolHandlers.SchemaManageLighting,
+
+		// ── Physics (omnibus) ──────────────────────────────────────────────
+		PhysicsToolHandlers.SchemaManagePhysics,
+
+		// ── Audio (omnibus) ────────────────────────────────────────────────
+		AudioToolHandlers.SchemaManageAudio,
+
+		// ── Camera (omnibus) ───────────────────────────────────────────────
+		CameraToolHandlers.SchemaManageCamera,
+
+		// ── Effects & environment (omnibus) ───────────────────────────────
+		EffectToolHandlers.SchemaManageEffects,
+
+		// ── Utility tools ──────────────────────────────────────────────────
+		UtilityToolHandlers.SchemaGetAssetDependencies,
+		UtilityToolHandlers.SchemaBatchTransform,
+		UtilityToolHandlers.SchemaCopyComponent,
+		UtilityToolHandlers.SchemaGetObjectBounds,
+
+		// ── Navigation tools ──────────────────────────────────────────────
+		NavigationToolHandlers.SchemaCreateNavMeshAgent,
+		NavigationToolHandlers.SchemaCreateNavMeshLink,
+		NavigationToolHandlers.SchemaCreateNavMeshArea,
+
+		// ── Rendering (omnibus) ───────────────────────────────────────────
+		RenderingToolHandlers.SchemaCreateRenderEntity,
+
+		// ── Game (omnibus) ────────────────────────────────────────────────
+		GameToolHandlers.SchemaCreateGameEntity,
+
+		// ── Scene spatial queries (omnibus) ───────────────────────────────
+		SceneQueryToolHandlers.SchemaSceneTrace,
+
+		// ── Terrain (omnibus) ────────────────────────────────────────────
+		TerrainToolHandlers.SchemaManageTerrain,
+
+		// ── Procedural mesh (omnibus) ────────────────────────────────────
+		ProceduralMeshToolHandlers.SchemaBuildProceduralMesh,
+
+		// ── Material editing (omnibus) ──────────────────────────────────
+		MaterialToolHandlers.SchemaManageMaterial,
+
+		// ── Batch operations (omnibus) ──────────────────────────────────
+		BatchToolHandlers.SchemaBatchOperations,
+
+		// ── Build automation (omnibus) ────────────────────────────────────
+		BuildAutomationToolHandlers.SchemaBuildAutomation,
+
+		// ── Zone management (omnibus) ────────────────────────────────────
+		ZoneToolHandlers.SchemaManageZones,
+
+		// ── Visibility & culling (omnibus) ───────────────────────────────
+		VisibilityToolHandlers.SchemaManageVisibility,
+
+		// ── NavMesh management (omnibus) ─────────────────────────────────
+		NavMeshToolHandlers.SchemaManageNavmesh,
+
+		// ── Game entity config (omnibus) ─────────────────────────────────
+		GameEntityConfigToolHandlers.SchemaConfigureGameEntities,
+
+		// ── Scene data (omnibus) ─────────────────────────────────────────
+		SceneDataToolHandlers.SchemaManageSceneData,
+
+		// ── Prefab management (omnibus) ──────────────────────────────────
+		PrefabToolHandlers.SchemaManagePrefabs,
+
+		// ── Compilation management (omnibus) ─────────────────────────────
+		CompilationToolHandlers.SchemaManageCompilation,
+
+		// ── Asset management (omnibus) ───────────────────────────────────
+		AssetManagementToolHandlers.SchemaManageAssets,
 	};
 }

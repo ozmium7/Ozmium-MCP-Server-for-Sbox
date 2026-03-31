@@ -79,7 +79,7 @@ internal static class ConsoleToolHandlers
 			summary += $" ({skippedAssemblies.Count} assemblies skipped due to reflection errors.)";
 
 		var json = JsonSerializer.Serialize( new { summary, entries, skippedAssemblies }, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── run_console_command ────────────────────────────────────────────────
@@ -97,11 +97,11 @@ internal static class ConsoleToolHandlers
 		try { currentValue = ConsoleSystem.GetValue( cmdName ); } catch { }
 
 		if ( currentValue == null )
-			return ToolHandlerBase.TextResult( $"Unknown convar: '{cmdName}'. Only [ConVar] properties are supported. Use list_console_commands to see available names." );
+			return OzmiumSceneHelpers.Txt( $"Unknown convar: '{cmdName}'. Only [ConVar] properties are supported. Use list_console_commands to see available names." );
 
 		// Read-only query (no value argument) — just return the current value.
 		if ( parts.Length == 1 )
-			return ToolHandlerBase.TextResult( $"{cmdName} = {currentValue}" );
+			return OzmiumSceneHelpers.Txt( $"{cmdName} = {currentValue}" );
 
 		// Write: set the convar value using SetValue (no main-thread restriction).
 		var newValue = string.Join( " ", parts, 1, parts.Length - 1 );
@@ -110,6 +110,6 @@ internal static class ConsoleToolHandlers
 		string readback = null;
 		try { readback = ConsoleSystem.GetValue( cmdName ); } catch { }
 
-		return ToolHandlerBase.TextResult( $"Set {cmdName} = {readback ?? newValue}" );
+		return OzmiumSceneHelpers.Txt( $"Set {cmdName} = {readback ?? newValue}" );
 	}
 }

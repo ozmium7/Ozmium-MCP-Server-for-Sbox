@@ -15,11 +15,6 @@ namespace SboxMcpServer;
 /// </summary>
 internal static class OzmiumWriteHandlers
 {
-	private static readonly JsonSerializerOptions _json = new()
-	{
-		PropertyNamingPolicy   = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-	};
 
 	// ── create_game_object ──────────────────────────────────────────────────
 
@@ -47,7 +42,7 @@ internal static class OzmiumWriteHandlers
 				message = $"Created '{go.Name}'.",
 				id      = go.Id.ToString(),
 				path    = OzmiumSceneHelpers.GetObjectPath( go )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -271,7 +266,7 @@ internal static class OzmiumWriteHandlers
 				id       = go.Id.ToString(),
 				name     = go.Name,
 				position = OzmiumSceneHelpers.V3( go.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -369,7 +364,7 @@ internal static class OzmiumWriteHandlers
 				position = OzmiumSceneHelpers.V3( go.WorldPosition ),
 				rotation = OzmiumSceneHelpers.Rot( go.WorldRotation ),
 				scale    = OzmiumSceneHelpers.V3( go.WorldScale )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -422,7 +417,7 @@ internal static class OzmiumWriteHandlers
 				id       = clone.Id.ToString(),
 				name     = clone.Name,
 				position = OzmiumSceneHelpers.V3( clone.WorldPosition )
-			}, _json ) );
+			}, OzmiumSceneHelpers.JsonSettings ) );
 		}
 		catch ( Exception ex ) { return OzmiumSceneHelpers.Txt( $"Error: {ex.Message}" ); }
 	}
@@ -544,7 +539,7 @@ internal static class OzmiumWriteHandlers
 		return null;
 	}
 
-	private static object ConvertJsonValue( JsonElement el, Type targetType )
+	internal static object ConvertJsonValue( JsonElement el, Type targetType )
 	{
 		if ( targetType == typeof( string ) )
 			return el.ValueKind == JsonValueKind.String ? el.GetString() : el.GetRawText();
@@ -573,6 +568,14 @@ internal static class OzmiumWriteHandlers
 		{
 			if ( el.ValueKind == JsonValueKind.String ) return double.Parse( el.GetString(), System.Globalization.CultureInfo.InvariantCulture );
 			return el.GetDouble();
+		}
+
+		if ( targetType == typeof( Color ) )
+		{
+			var str = el.ValueKind == JsonValueKind.String ? el.GetString() : el.GetRawText();
+			if ( Color.TryParse( str, out var color ) )
+				return color;
+			return null;
 		}
 
 		if ( targetType == typeof( Vector3 ) && el.ValueKind == JsonValueKind.Object )

@@ -67,7 +67,7 @@ internal static class AssetToolHandlers
 		}
 		catch ( Exception ex )
 		{
-			return ToolHandlerBase.TextResult( $"Error enumerating assets: {ex.Message}" );
+			return OzmiumSceneHelpers.Txt( $"Error enumerating assets: {ex.Message}" );
 		}
 
 		var summary = $"Found {results.Count} asset(s)" +
@@ -76,7 +76,7 @@ internal static class AssetToolHandlers
 			$" (scanned {totalSeen} total).";
 
 		var json = JsonSerializer.Serialize( new { summary, results }, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
+		return OzmiumSceneHelpers.Txt( json );
 	}
 
 	// ── get_editor_context ─────────────────────────────────────────────────
@@ -110,13 +110,13 @@ internal static class AssetToolHandlers
 
 			// Selection
 			var sel = new List<Dictionary<string, object>>();
-			foreach ( var go in GetSelectedGameObjects() )
+			foreach ( var go in OzmiumSceneHelpers.GetSelectedGameObjects() )
 			{
 				sel.Add( new Dictionary<string, object>
 				{
 					["id"]   = go.Id.ToString(),
 					["name"] = go.Name,
-					["path"] = SceneQueryHelpers.GetObjectPath( go )
+					["path"] = OzmiumSceneHelpers.GetObjectPath( go )
 				} );
 			}
 			ctx["selectedObjects"] = sel;
@@ -127,25 +127,6 @@ internal static class AssetToolHandlers
 		}
 
 		var json = JsonSerializer.Serialize( ctx, jsonOptions );
-		return ToolHandlerBase.TextResult( json );
-	}
-	private static IEnumerable<GameObject> GetSelectedGameObjects()
-	{
-		var result = new List<GameObject>();
-		try
-		{
-			var session = SceneEditorSession.Active;
-			if ( session == null ) return result;
-			var selProp = session.GetType().GetProperty( "Selection",
-				System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance );
-			var selObj = selProp?.GetValue( session );
-			if ( selObj == null ) return result;
-			var objsProp = selObj.GetType().GetProperty( "Objects" );
-			if ( objsProp?.GetValue( selObj ) is IEnumerable<object> objs )
-				foreach ( var o in objs )
-					if ( o is GameObject go ) result.Add( go );
-		}
-		catch { }
-		return result;
+		return OzmiumSceneHelpers.Txt( json );
 	}
 }

@@ -7,7 +7,7 @@ Connect AI coding assistants to the S&box editor using the [Model Context Protoc
 ## Features
 
 - SSE-based MCP server running on `localhost:8098`
-- **95 tools** across twelve categories: scene read, scene write, asset queries, editor control, console access, mesh editing, lighting, physics, audio, camera, effects & environment, and utilities
+- **70 tools** across twenty-five categories: scene read, scene write, asset queries, editor control, console access, mesh editing, terrain, lighting, physics, audio, camera, effects & environment, utilities, navigation, rendering, game entities, scene queries, procedural mesh, material editing, batch operations, build automation, zone management, visibility, navmesh, game entity config, and scene data
 - Disabled objects and disabled subtrees are fully visible to all query tools
 - Built-in Editor panel with live server status, session count, and an activity log
 - Localhost-only — nothing leaves your machine
@@ -93,9 +93,6 @@ Toggle a component's enabled state. Requires `componentType`, `enabled`, and `id
 #### `instantiate_prefab`
 Spawn a prefab at a world position. Accepts `path` (prefab asset path), `x/y/z`, and optional `parentId`. Use `browse_assets` with `type="prefab"` to find valid paths first.
 
-#### `save_scene`
-Save the currently open scene or prefab to disk.
-
 #### `undo`
 Undo the last editor operation.
 
@@ -137,32 +134,43 @@ Enhanced scene summary with component type frequency, prefab breakdown, network 
 
 ### Editor Control
 
-#### `select_game_object`
-Select a GameObject in the editor hierarchy and viewport by `id` or `name`.
+#### `manage_selection`
+Omnibus tool for editor selection. Operations:
+- `"select"` — Select a GameObject by `id` or `name`
+- `"select_many"` — Select multiple objects via `ids` array
+- `"clear"` — Clear the editor selection
+- `"get_selected"` — Return the currently selected objects
+- `"select_by_tag"` — Select all objects matching a tag
+- `"select_children"` — Select all children (recursive) of a parent object
+
+#### `manage_editor_state`
+Omnibus tool for editor state control. Operations:
+- `"start_play"` — Press the Play button
+- `"stop_play"` — Press the Stop button
+- `"get_play_state"` — Returns `"Playing"` or `"Stopped"`
+- `"save_scene"` — Save the currently open scene or prefab to disk
+- `"get_scene_info"` — Return the current scene file path, name, and whether it's a prefab session
 
 #### `open_asset`
 Open an asset in its default editor (scene, prefab, material, etc.). Requires `path`.
 
-#### `get_play_state`
-Returns the current play state: `"Playing"` or `"Stopped"`.
-
-#### `start_play_mode`
-Press the Play button in the editor.
-
-#### `stop_play_mode`
-Press the Stop button in the editor.
-
 #### `get_editor_log`
 Return recent log lines captured from the editor output. Accepts `lines` (default 50).
 
-#### `get_selected_objects`
-Return the currently selected objects in the editor.
+#### `frame_selection`
+Focus the editor camera on the current selection or specified objects. Accepts optional `ids` array.
 
-#### `set_selected_objects`
-Select multiple objects at once. Requires `ids` (array of GUIDs).
+#### `save_scene_as`
+Save the current scene to a new file path. Accepts `path`.
 
-#### `clear_selection`
-Clear the editor selection.
+#### `get_scene_unsaved`
+Check if the current scene has unsaved changes.
+
+#### `break_from_prefab`
+Break a prefab instance's connection to its source prefab. Requires `id` or `name`.
+
+#### `update_from_prefab`
+Update a prefab instance to match its source prefab. Requires `id` or `name`.
 
 ---
 
@@ -181,94 +189,193 @@ Get or set a console variable. Pass just the name to read its current value; pas
 #### `create_block`
 Creates a primitive block mesh using `PolygonMesh`. Compatible with S&box mesh editing tools. Accepts `x/y/z` (position), `sizeX/Y/Z`, `name`, and `materialPath`.
 
-#### `set_face_material`
-Applies a material to a specific face or all faces of a mesh. Requires `materialPath`, optional `faceIndex` (-1 for all faces) and `gameObjectId`/`name`.
-
-#### `set_texture_parameters`
-Sets texture mapping parameters (UV axes and scale) for faces. Accepts `uAxisX/Y/Z`, `vAxisX/Y/Z`, `scaleU`, `scaleV`, and `faceIndex`.
-
-#### `set_vertex_position`
-Sets the position of a vertex by index for displacement/sculpting. Requires `vertexIndex`, `x/y/z`, and `gameObjectId`/`name`.
-
-#### `set_vertex_color`
-Sets the vertex color for vertex painting. Requires `vertexIndex`, `r/g/b/a` (0-1), and `gameObjectId`/`name`.
-
-#### `set_vertex_blend`
-Sets the vertex blend weights for terrain/texturing. Requires `vertexIndex`, `r/g/b/blend` (0-1), and `gameObjectId`/`name`.
+#### `edit_mesh`
+Omnibus tool for mesh editing. Operations:
+- `"set_face_material"` — Apply a material to a face or all faces
+- `"set_texture_parameters"` — Set UV axes and scale for faces
+- `"set_vertex_position"` — Displace a vertex by index
+- `"set_vertex_color"` — Set vertex color for painting
+- `"set_vertex_blend"` — Set vertex blend weights for terrain
 
 #### `get_mesh_info`
 Queries detailed information about a mesh including vertex/face counts, bounds, and per-face materials. Requires `gameObjectId` or `name`.
 
 ---
 
+### Terrain
+
+#### `manage_terrain`
+Omnibus tool for terrain creation, editing, painting, and analysis. Operations:
+- `"create"` — Create a new terrain with resolution, size, and height. Tags the GO with `"terrain"`.
+- `"get_info"` — Return terrain metadata (resolution, size, height, materials list).
+- `"get_height"` — Sample world height at an XZ position.
+- `"set_height"` — Set height in a brush radius with smoothstep falloff.
+- `"flatten"` — Flatten terrain to a target height in a brush radius.
+- `"paint_material"` — Paint splatmap materials (base/overlay texture IDs, blend factor) in a brush radius.
+- `"get_material_at"` — Read the splatmap material at an XZ position.
+- `"get_normal"` — Surface normal, slope angle (degrees), compass direction of downhill face, and `suitableForBuilding` flag (slope vs `maxSlope` threshold).
+- `"sample_heights"` — Batch height sampling. Accepts an array of `{x, z}` points, returns an array of `{x, z, height}`.
+- `"get_height_profile"` — Sample heights along a line from start to end at N steps. Returns min/max height range.
+- `"find_flat_areas"` — BFS flood-fill to find connected flat regions within a search radius. Filters by `maxSlope` and `minSize` (texel count). Returns center position, average height, size, and approximate diameter per area.
+- `"get_terrain_statistics"` — Overall terrain metrics: min/max/average height, height range, average/max slope, texel count and size.
+- `"smooth"` — Smooth terrain in a brush area using 3x3 neighborhood averaging from a snapshot buffer. Strength controls blend intensity.
+- `"apply_noise"` — Apply multi-octave FBM Perlin noise (`Noise.Fbm`) to generate natural-looking terrain. Supports frequency, amplitude, octaves, and seed. Set `radius=0` (default) to apply to the entire terrain, or specify a brush center/size.
+- `"raise"` — Raise terrain by a relative amount (positive = up) with smoothstep falloff. Unlike `set_height` which sets an absolute target.
+- `"terrace"` — Create stepped terraces by quantizing heights to discrete steps. `blendWidth` controls edge smoothing between steps (0 = hard cliffs, 0.5 = no terracing).
+- `"erode"` — Simple thermal erosion that simulates material sliding down slopes above a talus angle threshold. Uses double-buffered iterations to prevent directional bias, with smoothstep falloff blending at brush edges.
+
+---
+
 ### Lighting
 
-#### `create_light`
-Creates a GO with a light component (`PointLight`, `SpotLight`, or `DirectionalLight`). Accepts `type`, `x/y/z`, `color`, `shadows`, `radius`, `attenuation`, `coneOuter`, `coneInner`, and `name`.
-
-#### `configure_light`
-Sets properties on an existing Light component. Supports `color`, `shadows`, `radius`, `attenuation`, `coneOuter`, `coneInner`, `fogMode`, `fogStrength`, and `skyIndirectLighting`.
-
-#### `create_sky_box`
-Creates a GO with a `SkyBox2D` component for sky rendering. Accepts `skyMaterial` path, `tint` color, and `skyIndirectLighting` toggle.
-
-#### `set_sky_box`
-Configures an existing `SkyBox2D` component. Supports `skyMaterial`, `tint`, and `skyIndirectLighting`.
-
-#### `create_ambient_light`
-Creates a scene-level `AmbientLight` for global ambient illumination. Accepts `color`, `x/y/z`, and `name`.
+#### `manage_lighting`
+Omnibus tool for lighting. Operations:
+- `"create_light"` — Create a GO with a light component (PointLight/SpotLight/DirectionalLight)
+- `"configure_light"` — Set properties on an existing Light component
+- `"create_sky_box"` — Create a GO with a SkyBox2D component
+- `"set_sky_box"` — Configure an existing SkyBox2D component
+- `"create_ambient_light"` — Create an AmbientLight for global ambient illumination
+- `"create_indirect_light_volume"` — Create an IndirectLightVolume (DDGI) for dynamic GI
 
 ---
 
 ### Physics
 
-#### `add_collider`
-Adds a collider component (`BoxCollider`, `SphereCollider`, `CapsuleCollider`, or `ModelCollider`) to a GameObject with configured properties including `center`, `size`/`radius`, `friction`, `elasticity`, `isTrigger`, and `surfaceVelocity`.
-
-#### `configure_collider`
-Modifies properties on an existing Collider component. Supports all the same properties as `add_collider`.
-
-#### `add_rigidbody`
-Adds a `Rigidbody` component to a GameObject for physics simulation. Accepts `mass`, `gravity`, `gravityScale`, `linearDamping`, and `angularDamping`.
+#### `manage_physics`
+Omnibus tool for physics. Operations:
+- `"add_collider"` — Add a collider (Box/Sphere/Capsule/ModelCollider) with configured properties
+- `"configure_collider"` — Modify properties on an existing Collider component
+- `"add_rigidbody"` — Add a Rigidbody for physics simulation
+- `"create_character_controller"` — Create a CharacterController for collision-based movement
+- `"add_plane_collider"` — Add a PlaneCollider for flat surfaces
+- `"add_hull_collider"` — Add a HullCollider (Box/Cone/Cylinder primitives)
+- `"create_model_physics"` — Create a ModelPhysics for ragdolls and per-bone physics
 
 ---
 
 ### Audio
 
-#### `create_sound_point`
-Creates a GO with a `SoundPointComponent` for spatial audio. Accepts `x/y/z`, `name`, `soundEvent` path, `volume`, `pitch`, `playOnStart`, and `repeat`.
-
-#### `configure_sound`
-Configures an existing `BaseSoundComponent` on a GameObject. Supports `soundEvent`, `volume`, `pitch`, `playOnStart`, `repeat`, `distanceAttenuation`, and `distance`.
+#### `manage_audio`
+Omnibus tool for audio. Operations:
+- `"create_sound_point"` — Create a spatial audio SoundPointComponent
+- `"configure_sound"` — Configure an existing BaseSoundComponent
+- `"create_soundscape_trigger"` — Create a SoundscapeTrigger for ambient audio zones
+- `"create_sound_box"` — Create a SoundBoxComponent for area ambient sounds
+- `"create_dsp_volume"` — Create a DspVolume for audio effect zones
+- `"create_audio_listener"` — Create an AudioListener for custom audio origins
 
 ---
 
 ### Camera
 
-#### `create_camera`
-Creates a GO with a `CameraComponent`. Accepts `x/y/z`, `pitch/yaw/roll`, `name`, `fov`, `zNear`, `zFar`, `isMainCamera`, `orthographic`, and `orthographicHeight`.
-
-#### `configure_camera`
-Configures an existing `CameraComponent`. Supports `fov`, `zNear`, `zFar`, `isMainCamera`, `orthographic`, `orthographicHeight`, `backgroundColor`, and `priority`.
+#### `manage_camera`
+Omnibus tool for cameras. Operations:
+- `"create_camera"` — Create a GO with a CameraComponent
+- `"configure_camera"` — Configure an existing CameraComponent
+- `"list_cameras"` — List all CameraComponents in the scene with their properties
 
 ---
 
 ### Effects & Environment
 
-#### `create_particle_effect`
-Creates a GO with a `ParticleEffect` component. Accepts `x/y/z`, `name`, `maxParticles`, `lifetime`, `timeScale`, and `preWarm`.
+#### `manage_effects`
+Omnibus tool for effects and environment. Operations:
+- `"create_particle_effect"` — Create a ParticleEffect component
+- `"configure_particle_effect"` — Configure an existing ParticleEffect
+- `"create_fog_volume"` — Create a fog volume (GradientFog or VolumetricFogVolume)
+- `"configure_post_processing"` — Create a PostProcessVolume for post-processing effects
+- `"create_environment_light"` — Create a complete environment (sun + ambient + sky)
+- `"create_beam_effect"` — Create a BeamEffect for laser/energy effects
+- `"create_verlet_rope"` — Create a VerletRope for rope physics
+- `"create_joint"` — Create a physics joint (Fixed/Ball/Hinge/Slider/Spring/Wheel)
+- `"create_clutter"` — Create a ClutterComponent for vegetation/object scattering
+- `"create_radius_damage"` — Create a RadiusDamage for explosion/area damage
 
-#### `configure_particle_effect`
-Sets properties on an existing `ParticleEffect`. Supports `maxParticles`, `lifetime`, `timeScale`, and `preWarm`.
+---
 
-#### `create_fog_volume`
-Creates a GO with a fog volume component (`GradientFog` or `VolumetricFogVolume`). Accepts `fogType`, `color`, `height`, `startDistance`, `endDistance`, `falloffExponent`, and `strength`.
+### Rendering
 
-#### `configure_post_processing`
-Creates a `PostProcessVolume` on an existing or new GO for post-processing effects. Accepts `priority`, `blendWeight`, `blendDistance`, and `editorPreview`.
+#### `create_render_entity`
+Omnibus tool for rendering entities. Operations:
+- `"TextRenderer"` — Create a GO with a TextRenderer component (text, font size, color, alignment)
+- `"LineRenderer"` — Create a GO with a LineRenderer (array of Vector3 points)
+- `"SpriteRenderer"` — Create a GO with a SpriteRenderer
+- `"TrailRenderer"` — Create a GO with a TrailRenderer (max points, point distance, lifetime, emitting)
+- `"ModelRenderer"` — Create a GO with a ModelRenderer (model path, shadows, body groups)
+- `"SkinnedModelRenderer"` — Create a GO with a SkinnedModelRenderer (model path, animation graph, bone objects)
+- `"ScreenPanel"` — Create a GO with a ScreenPanel (opacity, z-order, auto-screen-scale)
 
-#### `create_environment_light`
-Creates a complete environment lighting setup in one call: `DirectionalLight` (sun) + `AmbientLight` + `SkyBox2D`. Accepts `sunDirection` (pitch yaw roll), `sunColor`, `ambientColor`, and `skyMaterial`.
+---
+
+### Game Entities
+
+#### `create_game_entity`
+Omnibus tool for creating specific game entities with domain-specific property groups. Operations:
+- `"SpawnPoint"` — Create a player spawn point with optional team tag and color tint
+- `"TriggerHurt"` — Create a damage trigger with configurable damage, rate, damage tags, and start state
+- `"EnvmapProbe"` — Create an environment map probe for reflections
+- `"Prop"` — Create a physics prop with health, static flag, color tint, and body groups
+- `"Decal"` — Create a decal with material, size, projection depth, and lifetime
+- `"WorldPanel"` — Create a world-space HTML panel for shop signs and displays
+- `"FireDamage"` — Create a fire damage volume
+- `"ManualHitbox"` — Create a manual hitbox (sphere or box shape, hitbox tags)
+- `"BaseChair"` — Create a sittable chair with sit pose, height, and tooltip
+- `"Dresser"` — Create an NPC appearance controller (clothing source, height, tint, age)
+- `"Gib"` — Create a gib prop with optional lifetime and fade
+
+---
+
+### Scene Queries
+
+#### `scene_trace`
+Omnibus tool for spatial queries. Operations:
+- `"ray"` — Cast a ray from start to end, return hit info (position, normal, distance, GameObject). Use to align objects to surfaces.
+- `"sphere_trace"` — Sweep a sphere along a ray, return first hit.
+- `"box_trace"` — Sweep a box along a ray, return first hit.
+- `"sphere_overlap"` — Find all objects within a sphere volume. Returns up to 50 results.
+- `"box_overlap"` — Find all objects within a box volume. Returns up to 50 results.
+- `"terrain_height"` — Sample terrain height at an XZ position via raycast.
+
+---
+
+### Procedural Mesh
+
+#### `build_procedural_mesh`
+Omnibus tool for creating and manipulating procedural geometry. Operations:
+- `"create_mesh"` — Create a custom mesh from vertex positions and face indices
+- `"add_face"` — Add a face (triangle/quad) to an existing mesh
+- `"merge"` — Merge two meshes into one
+- `"scale"` — Scale an existing mesh uniformly or per-axis
+- `"extrude"` — Extrude a face outward by an offset
+- `"create_ramp"` — Create a ramp/inclined plane with configurable width, height, depth, and angle
+- `"create_cylinder"` — Create a cylinder with configurable radius, height, and side count
+- `"create_arch"` — Create an arch with configurable radius, height, width, and side count
+
+---
+
+### Material Editing
+
+#### `manage_material`
+Omnibus tool for editing material shader parameters and model material overrides. Operations:
+- `"set_param"` — Set a shader parameter on a material (float, color, vector3, int, bool, texture)
+- `"set_texture"` — Swap a texture on a material
+- `"get_params"` — Read current shader parameter values from a material
+- `"set_model_override"` — Override a material on a ModelRenderer by target name (e.g. `"skin"`)
+- `"clear_model_overrides"` — Remove all material overrides from a ModelRenderer
+
+---
+
+### Batch Operations
+
+#### `batch_operations`
+Omnibus tool for bulk operations on multiple objects. Operations:
+- `"batch_enable"` — Enable or disable multiple objects at once via GUIDs array
+- `"batch_delete"` — Delete multiple objects at once
+- `"batch_set_tags"` — Replace all tags on multiple objects
+- `"batch_set_material"` — Apply a material to multiple objects by face index
+- `"duplicate_array"` — Duplicate a source object in a grid pattern (countX/Y/Z, spacing)
+- `"batch_set_property"` — Set a property on a specific component type across multiple objects
+- `"batch_reparent"` — Move multiple objects under a new parent
 
 ---
 
@@ -285,6 +392,100 @@ Copies a component from one GameObject to another. Requires `sourceId`, `targetI
 
 #### `get_object_bounds`
 Returns the world-space bounding box of a GameObject. Requires `id` or `name`.
+
+---
+
+### Build Automation
+
+#### `build_automation`
+Omnibus tool for scene building automation. Operations:
+- `"scatter_objects"` — Place N prefab instances randomly in a 3D bounding volume. Supports random rotation/scale, ground alignment via raycast, optional parent, name prefix, and reproducible seed. Count capped at 500.
+- `"replace_prefab_instances"` — Bulk replace all instances of one prefab with another. Collects source instances first, then destroys and replaces each. Preserves position/rotation/scale by default.
+- `"align_to_ground"` — Drop objects to ground/terrain via downward raycast. Accepts an array of GUIDs, vertical offset, and max raycast distance.
+- `"randomize_transforms"` — Bulk transform randomization. Randomize rotation on X/Y/Z axes independently and/or scale uniformly. Supports reproducible seed.
+- `"snap_to_grid"` — Snap object positions to a configurable grid. Supports per-axis snapping (X/Y/Z), grid size, and origin offset. Useful for aligning buildings or city blocks.
+- `"distribute_along_line"` — Place N prefab instances evenly between two points via linear interpolation. Supports ground alignment, look-along-path orientation, random Y rotation, optional parent, and name prefix.
+- `"match_height"` — Set all specified objects to the same Y height. Either provide an explicit `height` value or set `useAverage=true` to compute the average Y across all selected objects.
+
+---
+
+### Zone Management
+
+#### `manage_zones`
+Omnibus tool for gameplay zone/area management. Operations:
+- `"create_zone_marker"` — Create an invisible GO tagged as a gameplay zone (buy_zone, safe_zone, jail_area, no_pvp, spawn_zone, no_build). Tags integrate with existing tag-based querying.
+- `"create_trigger_volume"` — Create a GO with a BoxCollider configured as a trigger volume.
+- `"configure_trigger_volume"` — Modify an existing trigger volume's size, trigger state, and enabled state.
+- `"tag_objects_in_volume"` — Find objects within a box or sphere around a target and apply a tag. Uses physics overlap queries.
+- `"list_zones"` — List all objects with `zone:*` tags, optionally filtered by zone type.
+- `"remove_zone_tag"` — Remove a zone tag from an object.
+- `"get_objects_in_zone"` — Find all objects physically inside zone markers using box overlap queries.
+
+---
+
+### Visibility & Culling
+
+#### `manage_visibility`
+Omnibus tool for object visibility and render culling. Operations:
+- `"create_culling_box"` — Create a `SceneCullingBox` for performance culling (Inside mode hides objects inside the box, Outside mode hides objects outside all boxes).
+- `"delete_culling_box"` — Delete a tracked culling box and its parent GO.
+- `"list_culling_boxes"` — List all tracked culling boxes with positions, sizes, and modes.
+- `"set_editor_only"` — Add/remove the `editor_only` tag on an object (hidden during gameplay).
+- `"list_editor_only"` — List all objects with the `editor_only` tag.
+- `"hide_in_game"` — Bulk-add `editor_only` tag to multiple objects via GUIDs array.
+
+---
+
+### Navigation
+
+#### `create_nav_mesh_agent`
+Create a GO with a NavMeshAgent component for AI navigation. Accepts position, agent height, radius, max speed, acceleration, and auto-traverse-links toggle.
+
+#### `create_nav_mesh_link`
+Create a NavMeshLink for connecting navigation mesh polygons (ladders, jumps, teleports). Accepts start/end positions, bidirectional toggle, and connection radius.
+
+#### `create_nav_mesh_area`
+Create a NavMeshArea volume that blocks or modifies navmesh generation in a region. Defaults to blocker mode.
+
+---
+
+### NavMesh Management
+
+#### `manage_navmesh`
+Omnibus tool for NavMesh system management. Operations:
+- `"get_navmesh_status"` — Returns enabled, isDirty, isGenerating, and agent parameter values.
+- `"configure_navmesh"` — Set agent parameters (height, radius, step size, max slope) and enabled state.
+- `"mark_dirty"` — Mark the navmesh as dirty so it rebuilds over the next few frames (deferred, safe in sync handler).
+- `"regenerate_area"` — Trigger bounded tile regeneration around a point with a given radius (async, fire-and-forget).
+- `"toggle_navmesh"` — Enable or disable the navmesh system.
+- `"get_navmesh_config"` — Return full navmesh configuration as JSON.
+
+---
+
+### Game Entity Configuration
+
+#### `configure_game_entities`
+Omnibus tool for high-level game entity configuration with domain-specific property groups. Unlike `set_component_property`, this provides preset configurations. Does NOT create entities (use `create_game_entity` for that). Operations:
+- `"configure_door"` — Set DarkRP door properties (isPurchasable, isOwnable, isLocked, buyAmount, doorGroups, blacklistedGroups) via reflection.
+- `"configure_spawn_point"` — Set team tags and color tint on spawn points.
+- `"configure_trigger"` — Configure TriggerHurt properties (damage, rate, damageTags, startEnabled).
+- `"configure_prop"` — Configure Prop properties (health, isStatic, tint, bodyGroups).
+- `"configure_world_panel"` — Configure WorldPanel display for shop signs (panelSize, renderScale, lookAtCamera, interactionRange).
+- `"configure_chair"` — Configure BaseChair interaction (sitPose, sitHeight, tooltipTitle).
+- `"configure_dresser"` — Configure NPC appearance via Dresser component (source, manualHeight, manualTint, manualAge, applyHeightScale).
+
+---
+
+### Scene Data
+
+#### `manage_scene_data`
+Omnibus tool for scene serialization, cloning, comparison, and network config. Enables scene templates and data-driven workflows. Operations:
+- `"serialize_objects"` — Serialize one or more GameObjects to JSON. Accepts `ids` array or uses editor selection if omitted.
+- `"deserialize_objects"` — Deserialize objects from a JSON string back into the scene. Supports single object or array. Optional position override and parent.
+- `"clone_with_properties"` — Deep-clone an object and apply property overrides. Uses `"componentType.propertyName": value` format in the `overrides` object.
+- `"compare_objects"` — Compare two GameObjects: name, enabled, tags, children count, component types, transform, network mode. Set `deep=true` for serialized JSON comparison.
+- `"batch_set_network_mode"` — Set `NetworkMode` (Never, Object, Snapshot) on multiple objects at once.
+- `"get_serialized"` — Return the full serialized JSON of a single GameObject.
 
 ---
 
@@ -336,7 +537,7 @@ git submodule update --remote Libraries/ozmium.oz_mcp
 }
 ```
 
-5. **Done.** Your AI assistant can now call all 95 tools directly.
+5. **Done.** Your AI assistant can now call all 70 tools directly.
 
 ---
 
@@ -357,14 +558,28 @@ git submodule update --remote Libraries/ozmium.oz_mcp
 | `OzmiumReadHandlers.cs` | Tool logic for all scene-read tools |
 | `OzmiumWriteHandlers.cs` | Tool logic for all scene-write tools (create, add/remove component, set property, destroy, reparent, tags, instantiate, save, undo/redo) — also owns write tool schemas |
 | `OzmiumAssetHandlers.cs` | Tool logic for asset-query tools (browse, model info, material, prefab structure, reload) — also owns asset tool schemas |
-| `OzmiumEditorHandlers.cs` | Tool logic for editor-control tools (select, open asset, play state, play/stop, editor log, console commands) — also owns editor tool schemas |
-| `MeshEditHandlers.cs` | Mesh editing tools (create block, face materials, texture params, vertex position/color/blend, mesh info) |
-| `LightingToolHandlers.cs` | Lighting tools (create/configure light, sky box, ambient light) |
-| `PhysicsToolHandlers.cs` | Physics tools (add/configure collider, add rigidbody) |
-| `AudioToolHandlers.cs` | Audio tools (create/configure sound point) |
-| `CameraToolHandlers.cs` | Camera tools (create/configure camera) |
-| `EffectToolHandlers.cs` | Effect & environment tools (particle effects, fog volumes, post-processing, environment light) |
+| `OzmiumEditorHandlers.cs` | Tool logic for editor-control tools (selection, editor state, open asset, editor log) — also owns editor tool schemas |
+| `MeshEditHandlers.cs` | Mesh editing tools (create block, edit_mesh omnibus, mesh info) |
+| `TerrainToolHandlers.cs` | Terrain creation, editing, painting, and analysis (manage_terrain omnibus — 17 operations) |
+| `LightingToolHandlers.cs` | Lighting omnibus tool (manage_lighting) |
+| `PhysicsToolHandlers.cs` | Physics omnibus tool (manage_physics) |
+| `AudioToolHandlers.cs` | Audio omnibus tool (manage_audio) |
+| `CameraToolHandlers.cs` | Camera omnibus tool (manage_camera) |
+| `EffectToolHandlers.cs` | Effects & environment omnibus tool (manage_effects) |
 | `UtilityToolHandlers.cs` | Utility tools (asset dependencies, batch transform, copy component, object bounds) |
+| `NavigationToolHandlers.cs` | Navigation tools (nav mesh agent, link, area) |
+| `RenderingToolHandlers.cs` | Rendering omnibus tool (create_render_entity) |
+| `GameToolHandlers.cs` | Game omnibus tool (create_game_entity) |
+| `SceneQueryToolHandlers.cs` | Scene spatial queries omnibus (ray cast, sweep, overlap, terrain height) |
+| `ProceduralMeshToolHandlers.cs` | Procedural mesh omnibus (custom mesh, ramp, cylinder, arch, merge, extrude) |
+| `MaterialToolHandlers.cs` | Material editing omnibus (shader params, texture swap, model overrides) |
+| `BatchToolHandlers.cs` | Batch operations omnibus (enable/disable, delete, tag, material, grid duplicate, property, reparent) |
+| `BuildAutomationToolHandlers.cs` | Build automation (scatter prefabs, replace prefab instances, align to ground, randomize transforms) |
+| `ZoneToolHandlers.cs` | Zone management (zone markers, trigger volumes, tag objects in zones, list/query zones) |
+| `VisibilityToolHandlers.cs` | Visibility & culling (culling boxes, editor-only tags, bulk hide) |
+| `NavMeshToolHandlers.cs` | NavMesh management (status, config, dirty, regenerate area, toggle) |
+| `GameEntityConfigToolHandlers.cs` | Game entity config (doors, spawn points, triggers, props, panels, chairs, dressers) |
+| `SceneDataToolHandlers.cs` | Scene data (serialize, deserialize, clone with overrides, compare, network mode) |
 | `AssetToolHandlers.cs` | Legacy asset handler (superseded by `OzmiumAssetHandlers`) |
 | `ConsoleToolHandlers.cs` | Tool logic for `list_console_commands` and `run_console_command` |
 | `ToolHandlerBase.cs` | Shared handler utilities (`TextResult`, `AppendHierarchyLine`) |
